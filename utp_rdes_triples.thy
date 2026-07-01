@@ -747,10 +747,7 @@ theorem R1_design_composition_RR:
   assumes "P is RR" "Q is RR" "R is RR" "S is RR"
   shows
   "(R1(P \<turnstile> Q) ;; R1(R \<turnstile> S)) = R1(((\<not>\<^sub>r P) wp\<^sub>r false \<and> Q wp\<^sub>r R) \<turnstile> (Q ;; S))"
-  apply (subst R1_design_composition)
-  apply (simp_all add: assms unrest wp_rea_def Healthy_if closure)
-  apply (pred_auto)
-done
+  by (simp add: R1_design_composition' assms unrest Healthy_if closure wp)
 
 theorem R1_design_composition_RC:
   assumes "P is RC" "Q is RR" "R is RR" "S is RR"

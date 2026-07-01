@@ -652,7 +652,11 @@ proof -
         ((\<exists> <:st\<^sup>< \<Zspot> ($\<^bold>v\<^sup>> = $<\<^sup><)\<^sub>e) \<triangleleft> $<:wait\<^sup>< \<triangleright>
             (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> \<^bold>M3(M)) \<triangleleft> $<:ok\<^sup>< \<triangleright>
             (($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e))"
-    by (simp add: AssocMerge_def nmerge_rd_merge3 nmerge_rd1_merge3 assms)
+    apply (subst nmerge_rd_merge3)
+    apply (subst nmerge_rd1_merge3)
+     apply (simp add: assms)
+    apply simp
+    done
   also have "... = 
         ((\<exists> <:st\<^sup>< \<Zspot> ($\<^bold>v\<^sup>> = $<\<^sup><)\<^sub>e) \<triangleleft> $<:wait\<^sup>< \<triangleright>
             (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> (rotate\<^sub>m ;; \<^bold>M3(M))) \<triangleleft> $<:ok\<^sup>< \<triangleright>
@@ -664,7 +668,7 @@ proof -
             (($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e))"
     using "1" by auto
   also have "... = \<^bold>M3(N\<^sub>R(M))"
-    by (simp add: AssocMerge_def nmerge_rd_merge3 nmerge_rd1_merge3 assms)
+    by (simp add: nmerge_rd_merge3 nmerge_rd1_merge3 assms)
   finally show ?thesis
     using AssocMerge_def by blast
 qed
@@ -969,6 +973,11 @@ lemma RHS_comp_assoc:
   by pred_simp
 
 lemma rea_design_par_mono: "P \<sqsubseteq> Q \<Longrightarrow> P \<parallel>\<^sub>R R \<sqsubseteq> Q \<parallel>\<^sub>R R"
-  by (pred_simp, blast)
+  apply (simp add: rea_design_par_def)
+  apply (rule RHS_mono)
+  apply (rule design_refine_intro)
+   apply (pred_auto)
+  apply (pred_auto)
+  done
 
 end
