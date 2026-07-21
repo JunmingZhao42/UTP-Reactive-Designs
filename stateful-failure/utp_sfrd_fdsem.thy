@@ -473,19 +473,55 @@ lemma CDF_refine_intro: "CDF \<sqsubseteq> P \<Longrightarrow> CDF \<sqsubseteq>
 lemma Skip_deadlock_free: "CDF \<sqsubseteq> Skip"
   by (rdes_refine)
 
-abbreviation "DoAny \<equiv> (\<Sqinter> range DoCSP)"
+abbreviation "DoAny \<equiv> (\<Sqinter>a. do\<^sub>C(\<guillemotleft>a\<guillemotright>))"
 
-lemma "(\<mu> X \<bullet> ((\<Sqinter> a. do\<^sub>C(a)) ;; SRD X) \<sqinter> Skip) = (\<Sqinter>i. (\<Sqinter> range DoCSP \<^bold>^ Suc i ;; Miracle) \<sqinter> (\<Sqinter>j\<in>{0..<Suc i}. \<Sqinter> range DoCSP \<^bold>^ j ;; Skip))"
+
+lemma "(\<mu> X. ((\<Sqinter> a. do\<^sub>C(\<guillemotleft>a\<guillemotright>)) ;; SRD X) \<sqinter> Skip) 
+       = (\<Sqinter>i. (DoAny \<^bold>^ Suc i ;; Miracle) \<sqinter> (\<Sqinter>j\<in>{0..<Suc i}. DoAny \<^bold>^ j ;; Skip))"
   by (simp add: mu_csp_form_2 closure)
 
-lemma "(\<Sqinter> range DoCSP \<^bold>^ Suc i ;; Miracle) = \<^bold>R\<^sub>s (true\<^sub>r \<turnstile> (\<Sqinter>x. \<Sqinter>j\<in>{0..i}. (\<Sqinter>x. \<Phi>(True,[\<leadsto>],[x]))\<^bold>^j ;; \<E>(True,[], {x})) \<diamondop> false\<^sub>h)"
+declare Healthy_if [closure del]
+
+find_theorems upower "\<^bold>R\<^sub>s"
+
+lemma "(\<Sqinter>i. (DoAny \<^bold>^ Suc i ;; Miracle)) = \<^bold>R\<^sub>s(true\<^sub>r \<turnstile> (\<Sqinter> a xs. \<E>(True, \<guillemotleft>xs\<guillemotright>, {\<guillemotleft>a\<guillemotright>})) \<diamondop> false\<^sub>h)"
+  apply (simp add: rdes_def rdes_rel_norms rdes rpred closure alpha frame usubst unrest wp cong: SUP_cong del: SEXP_apply)
+  apply (simp add: power_SUP seq_SUP_distr rpred closure)
+  thm csp_do_iter_seq
+  apply (rule_tac srdes_tri_eq_intro)
+    apply simp
+  apply (simp add: usubst)
+   apply pred_auto
+  apply simp
+  done
+
+find_theorems upower "\<^bold>R\<^sub>s"
+
+lemma "(\<Sqinter> j. DoAny \<^bold>^ j) ;; Skip = undefined"
+  apply (simp add: rdes_def rdes_rel_norms rdes rpred closure alpha frame usubst unrest wp cong: SUP_cong del: SEXP_apply)
+(*  apply (simp add: power_SUP seq_SUP_distr rpred closure usubst) *)
+  oops
+
+
+find_theorems "(;;)" Sup
+
+lemma
+ "(\<Sqinter>x. \<Phi>(True,[\<leadsto>],[\<guillemotleft>x\<guillemotright>])) \<^bold>^ j ;; CRR P = (\<Sqinter>xs\<in>{ys. length ys = j}. \<Phi>(True,[\<leadsto>],\<guillemotleft>xs\<guillemotright>)) ;; CRR P"
+  apply (simp add: power_SUP seq_SUP_distr)
+  apply (rule SUP_cong)
+  apply simp
+  apply (pred_auto)
+  oops
+
+lemma "(DoAny \<^bold>^ Suc i ;; Miracle) = \<^bold>R\<^sub>s (true\<^sub>r \<turnstile> (\<Sqinter>x. \<Sqinter>j\<in>{0..i}. (\<Sqinter>x. \<Phi>(True,[\<leadsto>],[x]))\<^bold>^j ;; \<E>(True,[], {x})) \<diamondop> false\<^sub>h)"
+  apply (simp add: power_SUP seq_SUP_distr rpred)
   oops
 
 lemma "(\<Sqinter>j\<in>{0..<Suc i}. \<Sqinter> range DoCSP \<^bold>^ Suc j ;; Skip) = undefined"
   oops
 
 (*
-lemma "CDF = (\<mu> X \<bullet> ((\<Sqinter> a. do\<^sub>C(a)) ;; SRD X) \<sqinter> Skip)"
+lemma "CDF = (\<mu> X. ((\<Sqinter> a. do\<^sub>C(a)) ;; SRD X) \<sqinter> Skip)"
   oops  
 *)
 
