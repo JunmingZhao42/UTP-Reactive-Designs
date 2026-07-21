@@ -257,7 +257,7 @@ declare upred_semiring.power_Suc [simp]
 lemma mu_csp_form_1 [rdes]:
   fixes P :: "('s, 't::size_trace,'\<alpha>) rsp_hrel"
   assumes "P is NSRD" "P is Productive"
-  shows "(\<mu> X \<bullet> P ;; SRD(X)) = (\<Sqinter>i. P \<^bold>^ (i+1)) ;; Miracle"
+  shows "(\<mu> X. P ;; SRD(X)) = (\<Sqinter>i. P \<^bold>^ (i+1)) ;; Miracle"
 proof -
   have 1:"Continuous (\<lambda>X. P ;; SRD X)"
     using SRD_Continuous

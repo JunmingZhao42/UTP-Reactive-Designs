@@ -647,18 +647,22 @@ abbreviation srd_lfp ("\<mu>\<^sub>R") where "\<mu>\<^sub>R F \<equiv> srdes_the
 abbreviation srd_gfp ("\<nu>\<^sub>R") where "\<nu>\<^sub>R F \<equiv> srdes_theory.utp_gfp F"
 
 syntax
-  "_srd_mu" :: "pttrn \<Rightarrow> logic \<Rightarrow> logic" ("\<mu>\<^sub>R _ \<bullet> _" [0, 10] 10)
-  "_srd_nu" :: "pttrn \<Rightarrow> logic \<Rightarrow> logic" ("\<nu>\<^sub>R _ \<bullet> _" [0, 10] 10)
+  "_srd_mu" :: "pttrn \<Rightarrow> logic \<Rightarrow> logic" ("\<mu>\<^sub>R _./ _" [0, 10] 10)
+  "_srd_nu" :: "pttrn \<Rightarrow> logic \<Rightarrow> logic" ("\<nu>\<^sub>R _./ _" [0, 10] 10)
 
 translations
-  "\<mu>\<^sub>R X \<bullet> P" == "\<mu>\<^sub>R (\<lambda> X. P)"
-  "\<nu>\<^sub>R X \<bullet> P" == "\<mu>\<^sub>R (\<lambda> X. P)"
+  "\<mu>\<^sub>R X. P" == "\<mu>\<^sub>R (\<lambda> X. P)"
+  "\<nu>\<^sub>R X. P" == "\<mu>\<^sub>R (\<lambda> X. P)"
+
+syntax_consts
+  "_srd_mu" \<rightleftharpoons> "srd_lfp" and
+  "_srd_nu" \<rightleftharpoons> "srd_gfp"
 
 text \<open> The reactive design weakest fixed-point can be defined in terms of relational calculus one. \<close>
 
 lemma srd_mu_equiv:
   assumes "Monotonic F" "F \<in> \<lbrakk>SRD\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"
-  shows "(\<mu>\<^sub>R X \<bullet> F(X)) = (\<mu> X \<bullet> F(SRD(X)))"
+  shows "(\<mu>\<^sub>R X. F(X)) = (\<mu> X. F(SRD(X)))"
   by (metis assms srdes_theory.utp_lfp_def)
 
 end

@@ -1544,7 +1544,7 @@ done
 
 lemma mu_srd_SRD:
   assumes "mono F" "F \<in> \<lbrakk>SRD\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"
-  shows "(\<mu> X \<bullet> \<^bold>R\<^sub>s (pre\<^sub>R (F X) \<turnstile> peri\<^sub>R (F X) \<diamondop> post\<^sub>R (F X))) is SRD"
+  shows "(\<mu> X. \<^bold>R\<^sub>s (pre\<^sub>R (F X) \<turnstile> peri\<^sub>R (F X) \<diamondop> post\<^sub>R (F X))) is SRD"
   apply (subst gfp_unfold)
   apply (simp add: mono_srd_iter assms)
   apply (rule RHS_tri_design_is_SRD)
@@ -1553,7 +1553,7 @@ done
 
 lemma mu_srd_iter:
   assumes "mono F" "F \<in> \<lbrakk>SRD\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"
-  shows "(\<mu> X \<bullet> \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X)))) = F(\<mu> X \<bullet> \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X))))"
+  shows "(\<mu> X. \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X)))) = F(\<mu> X. \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X))))"
   apply (subst gfp_unfold)
    apply (simp add: mono_srd_iter assms)
   apply (subst SRD_as_reactive_tri_design[THEN sym])
@@ -1562,9 +1562,9 @@ lemma mu_srd_iter:
 
 lemma mu_srd_form:
   assumes "mono F" "F \<in> \<lbrakk>SRD\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"
-  shows "\<mu>\<^sub>R F = (\<mu> X \<bullet> \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X))))"
+  shows "\<mu>\<^sub>R F = (\<mu> X. \<^bold>R\<^sub>s(pre\<^sub>R(F(X)) \<turnstile> peri\<^sub>R(F(X)) \<diamondop> post\<^sub>R(F(X))))"
 proof -
-  have 1: "F (\<mu> X \<bullet> \<^bold>R\<^sub>s(pre\<^sub>R (F X) \<turnstile> peri\<^sub>R(F X) \<diamondop> post\<^sub>R (F X))) is SRD"
+  have 1: "F (\<mu> X. \<^bold>R\<^sub>s(pre\<^sub>R (F X) \<turnstile> peri\<^sub>R(F X) \<diamondop> post\<^sub>R (F X))) is SRD"
     by (simp add: Healthy_apply_closed assms(1) assms(2) mu_srd_SRD)
   have 2:"Mono\<^bsub>utp_order SRD\<^esub> F"
     by (simp add: assms(1) mono_Monotone_utp_order)
@@ -1572,7 +1572,7 @@ proof -
     by (simp add: srdes_theory.LFP_unfold[THEN sym] assms)
   hence "\<^bold>R\<^sub>s(pre\<^sub>R (F (F (\<mu>\<^sub>R F))) \<turnstile> peri\<^sub>R (F (F (\<mu>\<^sub>R F))) \<diamondop> post\<^sub>R (F (F (\<mu>\<^sub>R F)))) = \<mu>\<^sub>R F"
     using SRD_reactive_tri_design by force
-  hence "(\<mu> X \<bullet> \<^bold>R\<^sub>s(pre\<^sub>R (F X) \<turnstile> peri\<^sub>R(F X) \<diamondop> post\<^sub>R (F X))) \<sqsubseteq> F (\<mu>\<^sub>R F)"
+  hence "(\<mu> X. \<^bold>R\<^sub>s(pre\<^sub>R (F X) \<turnstile> peri\<^sub>R(F X) \<diamondop> post\<^sub>R (F X))) \<sqsubseteq> F (\<mu>\<^sub>R F)"
     by (metis (no_types, lifting) "3" gfp_upperbound pred_ba.order.eq_iff ref_by_pred_is_leq)
   thus ?thesis
     using assms 1 3 srdes_theory.weak.LFP_lowerbound eq_iff mu_srd_iter
