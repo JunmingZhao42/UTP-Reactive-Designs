@@ -287,18 +287,17 @@ definition AlternateR_list
 [pred, ndes_simp]:
   "AlternateR_list xs P = AlternateR {0..<length xs} (\<lambda> i. map fst xs ! i) (\<lambda> i. map snd xs ! i) P"
 
-(*
 syntax
-  "_altindR_els"   :: "pttrn \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("if\<^sub>R _\<in>_ \<bullet> _ \<rightarrow> _ else _ fi")
-  "_altindR"       :: "pttrn \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("if\<^sub>R _\<in>_ \<bullet> _ \<rightarrow> _ fi")
+  "_altindR_els"   :: "pttrn \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("if\<^sub>R _/\<in>_/. _ \<rightarrow> _ else _ fi")
+  "_altindR"       :: "pttrn \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("if\<^sub>R _/\<in>_/. _ \<rightarrow> _ fi")
   (* We reuse part of the parsing infrastructure for design alternation over a (finite) list of branches *)
   "_altgcommR_els" :: "gcomms \<Rightarrow> logic \<Rightarrow> logic" ("if\<^sub>R/ _ else _ /fi")
   "_altgcommR"     :: "gcomms \<Rightarrow> logic" ("if\<^sub>R/ _ /fi")
 
 translations
-  "if\<^sub>R i\<in>I \<bullet> g \<rightarrow> A else B fi"  \<rightharpoonup> "CONST AlternateR I (\<lambda>i. g) (\<lambda>i. A) B"
-  "if\<^sub>R i\<in>I \<bullet> g \<rightarrow> A fi"  \<rightharpoonup> "CONST AlternateR I (\<lambda>i. g) (\<lambda>i. A) (CONST Chaos)"
-  "if\<^sub>R i\<in>I \<bullet> (g i) \<rightarrow> A else B fi"  \<leftharpoondown> "CONST AlternateR I g (\<lambda>i. A) B"
+  "if\<^sub>R i\<in>I. g \<rightarrow> A else B fi"  \<rightharpoonup> "CONST AlternateR I (\<lambda>i. (g)\<^sub>e) (\<lambda>i. A) B"
+  "if\<^sub>R i\<in>I. g \<rightarrow> A fi"  \<rightharpoonup> "CONST AlternateR I (\<lambda>i. (g)\<^sub>e) (\<lambda>i. A) (CONST Chaos)"
+  "if\<^sub>R i\<in>I. (g i) \<rightarrow> A else B fi"  \<leftharpoondown> "CONST AlternateR I (g)\<^sub>e (\<lambda>i. A) B"
   "_altgcommR cs" \<rightharpoonup> "CONST AlternateR_list cs (CONST Chaos)"
   "_altgcommR (_gcomm_show cs)" \<leftharpoondown> "CONST AlternateR_list cs (CONST Chaos)"
   "_altgcommR_els cs P" \<rightharpoonup> "CONST AlternateR_list cs P"
@@ -306,28 +305,30 @@ translations
 
 lemma AlternateR_NSRD_closed [closure]:
   assumes "\<And> i. i \<in> I \<Longrightarrow> A i is NSRD" "B is NSRD"
-  shows "(if\<^sub>R i\<in>I \<bullet> g i \<rightarrow> A i else B fi) is NSRD"
+  shows "(if\<^sub>R i\<in>I. g i \<rightarrow> A i else B fi) is NSRD"
 proof (cases "I = {}")
   case True
-  then show ?thesis by (simp add: AlternateR_def assms)
+  then show ?thesis by (simp add: AlternateR_def assms gcmd_NSRD)
 next
   case False
   then show ?thesis by (simp add: AlternateR_def closure assms)
 qed
 
+(*
 lemma AlternateR_empty [simp]:
   "(if\<^sub>R i \<in> {} \<bullet> g i \<rightarrow> A i else B fi) = B"
-  by (rdes_simp)
+  apply (rdes_simp)
+*)
 
 lemma AlternateR_Productive [closure]:
   assumes 
     "\<And> i. i \<in> I \<Longrightarrow> A i is NSRD" "B is NSRD" 
     "\<And> i. i \<in> I \<Longrightarrow> A i is Productive" "B is Productive"
-  shows "(if\<^sub>R i\<in>I \<bullet> g i \<rightarrow> A i else B fi) is Productive"
+  shows "(if\<^sub>R i\<in>I. g i \<rightarrow> A i else B fi) is Productive"
 proof (cases "I = {}")
   case True
   then show ?thesis
-    by (simp add: assms(4)) 
+    by (simp add: AlternateR_def assms(2,4) gcmd_Productive) 
 next
   case False
   then show ?thesis
@@ -336,16 +337,17 @@ qed
 
 lemma AlternateR_singleton:
   assumes "A k is NSRD" "B is NSRD"
-  shows "(if\<^sub>R i \<in> {k} \<bullet> g i \<rightarrow> A i else B fi) = (A(k) \<triangleleft> g(k) \<triangleright>\<^sub>R B)"
+  shows "(if\<^sub>R i \<in> {k}. g i \<rightarrow> A i else B fi) = (A(k) \<triangleleft> g(k) \<triangleright>\<^sub>R B)"
   by (simp add: AlternateR_def, rdes_eq cls: assms)
 
 text \<open> Convert an alternation over disjoint guards into a cascading if-then-else \<close>
 
+(*
 lemma AlternateR_insert_cascade:
   assumes 
     "\<And> i. i \<in> I \<Longrightarrow> A i is NSRD"
     "A k is NSRD" "B is NSRD" 
-    "(g(k) \<and> (\<Or> i\<in>I \<bullet> g(i))) = false"
+    "(g(k) \<and> (\<Or> i\<in>I. g(i))) = false"
   shows "(if\<^sub>R i \<in> insert k I \<bullet> g i \<rightarrow> A i else B fi) = (A(k) \<triangleleft> g(k) \<triangleright>\<^sub>R (if\<^sub>R i\<in>I \<bullet> g(i) \<rightarrow> A(i) else B fi))"
 proof (cases "I = {}")
   case True

@@ -786,7 +786,7 @@ subsection \<open> Enabled Events \<close>
 definition csp_enable :: "'s pred \<Rightarrow> ('e list, 's) expr \<Rightarrow> ('e set, 's) expr \<Rightarrow> ('s, 'e) sfrd hrel" where
 [pred]: "csp_enable s t E = (\<lceil>s\<rceil>\<^sub>S\<^sub>< \<and> ($tr\<^sup>> = $tr\<^sup>< @ \<lceil>t\<rceil>\<^sub>S\<^sub><)\<^sub>e \<and> (\<forall> e\<in>\<lceil>E\<rceil>\<^sub>S\<^sub><. \<guillemotleft>e\<guillemotright> \<notin> $ref\<^sup>>)\<^sub>e)"
 
-syntax "_csp_enable" :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("\<E>'(_,_, _')")
+syntax "_csp_enable" :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("\<E>'(_, _, _')")
 translations "_csp_enable s t E" == "CONST csp_enable (s)\<^sub>e (t)\<^sub>e (E)\<^sub>e"
 syntax_consts "_csp_enable" == csp_enable
 
@@ -967,7 +967,7 @@ proof -
     by (simp add: Healthy_if assms)
 qed
 
-lemma csp_do_iter [rpred]: "(;; x \<leftarrow> xs. \<Phi>(True,[\<leadsto>],[\<guillemotleft>x\<guillemotright>])) = (if xs = [] then II else \<Phi>(True,[\<leadsto>],\<guillemotleft>xs\<guillemotright>))"
+lemma csp_do_iter: "(;; x \<leftarrow> xs. \<Phi>(True,[\<leadsto>],[\<guillemotleft>x\<guillemotright>])) = (if xs = [] then II else \<Phi>(True,[\<leadsto>],\<guillemotleft>xs\<guillemotright>))"
 proof (induct xs)
   case Nil
   then show ?case by simp
@@ -982,6 +982,12 @@ next
     then show ?thesis by (simp del: SEXP_apply add: Cons rpred usubst, pred_simp)
   qed
 qed
+
+lemma csp_do_iter_seq [rpred]: 
+  assumes "P is CRR"
+  shows "(;; x \<leftarrow> xs. \<Phi>(True,[\<leadsto>],[\<guillemotleft>x\<guillemotright>])) ;; P = (\<Phi>(True,[\<leadsto>],\<guillemotleft>xs\<guillemotright>) ;; P)"
+  by (metis assms crel_skip_left_unit csp_do_iter csp_do_nothing_0 seqr_left_unit
+      zero_list_def)
 
 lemma wp_rea_csp_do_lemma:
   fixes P :: "('\<sigma>, '\<phi>) sfrd hrel"

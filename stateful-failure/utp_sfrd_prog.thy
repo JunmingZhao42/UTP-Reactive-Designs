@@ -21,14 +21,13 @@ lemma GuardedCommR_NCSP_closed [closure]:
 
 subsection \<open> Alternation \<close>
 
-(*
 lemma AlternateR_NCSP_closed [closure]:
   assumes "\<And> i. i \<in> A \<Longrightarrow> P(i) is NCSP" "Q is NCSP"
-  shows "(if\<^sub>R i\<in>A \<bullet> g(i) \<rightarrow> P(i) else Q fi) is NCSP"
+  shows "AlternateR A g P Q is NCSP"
 proof (cases "A = {}")
   case True
   then show ?thesis
-    by (simp add: assms)
+    by (simp add: AlternateR_def GuardedCommR_NCSP_closed assms(2))
 next
   case False
   then show ?thesis
@@ -43,7 +42,6 @@ lemma AlternateR_list_NCSP_closed [closure]:
   apply (auto simp add: assms)
   apply (metis assms(1) eq_snd_iff nth_mem)
   done
-*)
 
 subsection \<open> Specification Statement \<close>
 
