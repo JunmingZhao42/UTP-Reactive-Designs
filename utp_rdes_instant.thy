@@ -160,11 +160,11 @@ text \<open> A recursion whose body does not extend the trace results in diverge
 
 lemma ISRD_recurse_Chaos:
   assumes "P is ISRD" "post\<^sub>R P ;; true\<^sub>r = true\<^sub>r"
-  shows "(\<mu>\<^sub>R X \<bullet> P ;; X) = Chaos"
+  shows "(\<mu>\<^sub>R X. P ;; X) = Chaos"
 proof -
-  have 1: "(\<mu>\<^sub>R X \<bullet> P ;; X) = (\<mu> X \<bullet> P ;; SRD(X))"
+  have 1: "(\<mu>\<^sub>R X. P ;; X) = (\<mu> X. P ;; SRD(X))"
     by (auto simp add: srdes_theory.utp_lfp_def closure mono assms)
-  have "(\<mu> X \<bullet> P ;; SRD(X)) \<sqsubseteq> Chaos"
+  have "(\<mu> X. P ;; SRD(X)) \<sqsubseteq> Chaos"
   proof -
     have "P ;; Chaos \<sqsubseteq> Chaos"
       apply (rdes_refine_split cls: assms)
@@ -181,7 +181,7 @@ proof -
 qed
 
 lemma recursive_assign_Chaos:
-  "(\<mu>\<^sub>R X \<bullet> \<langle>\<sigma>\<rangle>\<^sub>R ;; X) = Chaos"
+  "(\<mu>\<^sub>R X. \<langle>\<sigma>\<rangle>\<^sub>R ;; X) = Chaos"
   by (rule ISRD_recurse_Chaos, simp_all add: closure rdes, pred_auto)  
 
 lemma unproductive_form:

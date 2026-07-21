@@ -599,7 +599,7 @@ qed
 subsection \<open> While Loop \<close>
 
 definition WhileR :: "'s pred \<Rightarrow> ('s, 't::size_trace, '\<alpha>) rsp_hrel \<Rightarrow> ('s, 't, '\<alpha>) rsp_hrel" where
-"WhileR b P = (\<mu>\<^sub>R X \<bullet> (P ;; X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
+"WhileR b P = (\<mu>\<^sub>R X. (P ;; X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
 
 syntax "_whileR" :: "logic \<Rightarrow> logic \<Rightarrow> logic" ("while\<^sub>R _ do _ od")
 translations "_whileR b P" == "CONST WhileR b P"
@@ -635,11 +635,11 @@ proof -
     by (clarsimp simp add: Continuous_def seq_SUP_distl[THEN sym], drule_tac x="A" in spec, simp)
   have 2: "Continuous (\<lambda>X. P ;; SRD X \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
     by (simp add: 1 closure assms)
-  have "?lhs = (\<mu>\<^sub>R X \<bullet> P ;; X \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
+  have "?lhs = (\<mu>\<^sub>R X. P ;; X \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
     by (simp add: WhileR_def)
-  also have "... = (\<mu> X \<bullet> P ;; SRD(X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
+  also have "... = (\<mu> X. P ;; SRD(X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
     by (simp add: srd_mu_equiv closure mono assms)
-  also have "... = (\<nu> X \<bullet> P ;; SRD(X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
+  also have "... = (\<nu> X. P ;; SRD(X) \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R)"
     by (simp add: guarded_fp_uniq Guarded_if_Productive[OF assms] funcsetI closure mono assms)
   also have "... = (\<Sqinter>i. ((\<lambda>X. P ;; SRD X \<triangleleft> b \<triangleright>\<^sub>R II\<^sub>R) ^^ i) false)"
     by (simp add: sup_continuous_lfp 2 sup_continuous_Continuous top_false false_pred_def)

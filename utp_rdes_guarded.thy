@@ -264,7 +264,7 @@ proof -
     by (clarsimp simp add: Continuous_def seq_SUP_distl[THEN sym], drule_tac x="A" in spec, simp)
   have 2: "(\<lambda>X. P ;; SRD X) \<in> \<lbrakk>id\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"  
     by (blast intro: funcsetI closure assms)
-  with 1 2 have "(\<mu> X \<bullet> P ;; SRD(X)) = (\<nu> X \<bullet> P ;; SRD(X))"
+  with 1 2 have "(\<mu> X. P ;; SRD(X)) = (\<nu> X. P ;; SRD(X))"
     by (simp add: guarded_fp_uniq Guarded_if_Productive[OF assms] funcsetI closure)
   also have "... = (\<Sqinter>i. ((\<lambda>X. P ;; SRD X) ^^ i) false)"
     by (simp add: sup_continuous_lfp 1 sup_continuous_Continuous false_pred_def bot_fun_def SEXP_def)
@@ -295,15 +295,15 @@ qed
 lemma mu_csp_form_NSRD [closure]:
   fixes P :: "('s, 't::size_trace,'\<alpha>) rsp_hrel"
   assumes "P is NSRD" "P is Productive"
-  shows "(\<mu> X \<bullet> P ;; SRD(X)) is NSRD"
+  shows "(\<mu> X. P ;; SRD(X)) is NSRD"
   by (simp add: mu_csp_form_1 assms closure)
 
 lemma mu_csp_form_1':
   fixes P :: "('s, 't::size_trace,'\<alpha>) rsp_hrel"
   assumes "P is NSRD" "P is Productive"
-  shows "(\<mu> X \<bullet> P ;; SRD(X)) = (P ;; P\<^sup>\<star>) ;; Miracle"
+  shows "(\<mu> X. P ;; SRD(X)) = (P ;; P\<^sup>\<star>) ;; Miracle"
 proof -
-  have "(\<mu> X \<bullet> P ;; SRD(X)) = (\<Sqinter> i\<in>UNIV. P ;; P \<^bold>^ i) ;; Miracle"
+  have "(\<mu> X. P ;; SRD(X)) = (\<Sqinter> i\<in>UNIV. P ;; P \<^bold>^ i) ;; Miracle"
     by (simp add: mu_csp_form_1 assms closure ustar_def)
   also have "... = (P ;; P\<^sup>\<star>) ;; Miracle"
     by (simp only: seq_SUP_distl[THEN sym], simp add: ustar_def)
@@ -367,14 +367,14 @@ qed
 lemma mu_csp_form_2 [rdes]:
   fixes P Q :: "('s,'t::size_trace,'\<alpha>) rsp_hrel"
   assumes "P is NSRD" "P is Productive" "Q is NSRD"
-  shows "(\<mu> X \<bullet> (P ;; SRD X) \<sqinter> Q) = (\<Sqinter>i. (P\<^bold>^(Suc i) ;; Miracle) \<sqinter> (\<Sqinter>j\<in>{0..<Suc i}. P\<^bold>^j ;; Q))"
+  shows "(\<mu> X. (P ;; SRD X) \<sqinter> Q) = (\<Sqinter>i. (P\<^bold>^(Suc i) ;; Miracle) \<sqinter> (\<Sqinter>j\<in>{0..<Suc i}. P\<^bold>^j ;; Q))"
 proof -
   have 1:"Continuous (\<lambda>X. (P ;; SRD X) \<sqinter> Q)"
     using SRD_Continuous
     by (clarsimp simp add: Continuous_def seq_SUP_distl[THEN sym] ref_lattice.INF_inf_const1 ref_lattice.inf_commute, drule_tac x="A" in spec, simp)
   have 2: "(\<lambda>X. (P ;; SRD X) \<sqinter> Q) \<in> \<lbrakk>id\<rbrakk>\<^sub>H \<rightarrow> \<lbrakk>SRD\<rbrakk>\<^sub>H"
     by (rule funcsetI, simp add: closure assms)
-  with 1 2 have "(\<mu> X \<bullet> (P ;; SRD X) \<sqinter> Q) = (\<nu> X \<bullet> (P ;; SRD X) \<sqinter> Q)"
+  with 1 2 have "(\<mu> X. (P ;; SRD X) \<sqinter> Q) = (\<nu> X. (P ;; SRD X) \<sqinter> Q)"
     by (simp add: guarded_fp_uniq funcsetI closure assms)
   also have "... = (\<Sqinter>i. ((\<lambda>X. (P ;; SRD X) \<sqinter> Q) ^^ i) false)"
     by (simp add: "1" sup_continuous_Continuous sup_continuous_lfp top_false)
