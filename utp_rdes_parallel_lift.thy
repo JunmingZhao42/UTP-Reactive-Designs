@@ -200,13 +200,15 @@ text \<open>
 
 lemma rdes_lift_parallel_assoc_nondiv:
   fixes j :: "('t::trace \<times> 'a) merge"
-  shows "\<lbrakk> j is SymMerge; AssocMerge j; P is R1; Q is R1; R is R1;
-     pre\<^sub>R P = true\<^sub>r; pre\<^sub>R Q = true\<^sub>r; pre\<^sub>R R = true\<^sub>r \<rbrakk> \<Longrightarrow>
-    (P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
+  assumes merge: "j is SymMerge" "AssocMerge j"
+      and rd: "P is RD" "Q is RD" "R is RD"
+      and nondiv: "P is NDRD" "Q is NDRD" "R is NDRD"
+  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
     P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
 proof -
-  assume assms: "j is SymMerge" "AssocMerge j" "P is R1" "Q is R1" "R is R1"
+  have assms: "j is SymMerge" "AssocMerge j" "P is R1" "Q is R1" "R is R1"
     "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
+    using merge rd nondiv by (simp_all add: RD_healths(1) NDRD_healthy_iff)
   let ?N = "RADm (rdes_lift_merge_raw j)"
   have eval: "merge_eval (RD2 (rdes_lift_merge_raw j)) x p q z =
       (((ok\<^sub>v p \<and> ok\<^sub>v q) \<longrightarrow> ok\<^sub>v z) \<and> wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
