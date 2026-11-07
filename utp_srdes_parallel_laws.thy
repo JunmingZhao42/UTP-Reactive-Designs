@@ -405,6 +405,44 @@ lemma rdes_parallel_comm:
   shows "P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q = Q \<parallel>\<^sub>R\<^bsub>M\<^esub> P"
   by (rule par_by_merge_comm[OF SymMerge_merge_rd[OF assms]])
 
+subsubsection \<open> Associativity \<close>
+
+lemma rdes_parallel_assoc:
+  assumes "M is SymMerge" "AssocMerge (M\<^sub>R(M))"
+  shows "(P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q) \<parallel>\<^sub>R\<^bsub>M\<^esub> R =
+    P \<parallel>\<^sub>R\<^bsub>M\<^esub> (Q \<parallel>\<^sub>R\<^bsub>M\<^esub> R)"
+  by (rule par_by_merge_assoc[OF SymMerge_merge_rd[OF assms(1)] assms(2)])
+
+text \<open>Completion can turn a divergent intermediate result into a later terminating one.\<close>
+
+lemma BasicMerge_completed_not_AssocMerge:
+  "\<not> AssocMerge (M\<^sub>R(N\<^sub>B :: (unit,nat,unit) rsp merge))"
+proof (rule notI)
+  assume assoc: "AssocMerge (M\<^sub>R(N\<^sub>B :: (unit,nat,unit) rsp merge))"
+  let ?K = "M\<^sub>R(N\<^sub>B :: (unit,nat,unit) rsp merge)"
+  let ?x = "\<lparr>ok\<^sub>v=True, wait\<^sub>v=False, tr\<^sub>v=0, st\<^sub>v=(), \<dots>=()\<rparr> :: (unit,nat,unit) rsp"
+  let ?p = "\<lparr>ok\<^sub>v=False, wait\<^sub>v=False, tr\<^sub>v=1, st\<^sub>v=(), \<dots>=()\<rparr> :: (unit,nat,unit) rsp"
+  let ?q = "\<lparr>ok\<^sub>v=True, wait\<^sub>v=False, tr\<^sub>v=1, st\<^sub>v=(), \<dots>=()\<rparr> :: (unit,nat,unit) rsp"
+  let ?r = "\<lparr>ok\<^sub>v=True, wait\<^sub>v=False, tr\<^sub>v=2, st\<^sub>v=(), \<dots>=()\<rparr> :: (unit,nat,unit) rsp"
+  let ?u = ?r
+  let ?z = ?u
+  have basic_eval: "merge_eval (N\<^sub>B :: (unit,nat,unit) rsp merge) x p q z =
+    (tr\<^sub>v x \<le> tr\<^sub>v z \<and>
+     tr\<^sub>v z - tr\<^sub>v x = tr\<^sub>v p - tr\<^sub>v x \<and>
+     tr\<^sub>v z - tr\<^sub>v x = tr\<^sub>v q - tr\<^sub>v x \<and>
+     st\<^sub>v z = st\<^sub>v x)" for x p q z
+    by (simp add: BasicMerge_def; pred_auto)
+  have left: "merge_eval ?K ?x ?p ?q ?u \<and> merge_eval ?K ?x ?u ?r ?z"
+    by (simp add: merge_rd_eval[OF BasicMerge_RDM] basic_eval;
+        rule exI[where x="?q"]; simp)
+  have right: "\<not> (\<exists>u. merge_eval ?K ?x ?q ?r u)"
+    by (auto simp: merge_rd_eval[OF BasicMerge_RDM] basic_eval)
+  from assoc have eq: "(\<exists>u. merge_eval ?K ?x ?p ?q u \<and> merge_eval ?K ?x u ?r ?z) =
+    (\<exists>u. merge_eval ?K ?x ?q ?r u \<and> merge_eval ?K ?x u ?p ?z)"
+    by (simp only: AssocMerge_cyclic_eval; blast)
+  from left right eq show False by blast
+qed
+
 subsubsection \<open> Miracle Zero Laws \<close>
 
 text \<open>
