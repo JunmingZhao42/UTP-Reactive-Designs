@@ -45,7 +45,7 @@ lemma R3hm_Monotonic [closure]: "Monotonic R3hm"
 subsubsection \<open> Commutation \<close>
 
 lemma R2m_R3hm_commute: "R2m (R3hm M) = R3hm (R2m M)"
-  by (pred_auto; metis minus_zero_eq)
+  by (pred_auto; simp add: minus_zero_eq)
 
 lemma RD1m_R3hm_commute: "RD1m (R3hm M) = R3hm (RD1m M)"
   by pred_auto
@@ -82,10 +82,9 @@ lemma SRDM_fixed_iff:
     (M is R1m) \<and> (M is R2m) \<and> (M is R3hm) \<and> (M is RD1m) \<and> (M is RD2)"
 proof
   assume "M is SRDM"
-  then have "M = SRDM M"
-    by (simp add: Healthy_def)
   then show "(M is R1m) \<and> (M is R2m) \<and> (M is R3hm) \<and> (M is RD1m) \<and> (M is RD2)"
-    using SRDM_image_healths[of M] R2m_implies_R1m by metis
+    using SRDM_image_healths[of M] R2m_implies_R1m
+    by (auto simp: Healthy_def')
 next
   assume "(M is R1m) \<and> (M is R2m) \<and> (M is R3hm) \<and> (M is RD1m) \<and> (M is RD2)"
   then show "M is SRDM"
@@ -170,11 +169,7 @@ proof -
     for x u
     by (cases u rule: srea_vars.cases_scheme; simp add: obs_def shift_def diff_add_cancel_left')
   have add_eq: "(h + x = h + y) = (x = y)" for h x y :: "'t"
-    apply (rule iffI)
-     apply (drule arg_cong[where f="\<lambda>t. t - h"])
-     apply simp
-    apply simp
-    done
+    by (auto dest: arg_cong[where f="\<lambda>t. t - h"])
   have add_le: "(h + x \<le> h + y) = (x \<le> y)" for h x y :: "'t"
     by (metis trace_class.add_le_imp_le_left trace_class.add_left_mono)
   have skip_shift: "II\<^sub>R (shift x u, shift x z) = II\<^sub>R (u,z)"
@@ -296,12 +291,10 @@ proof (rule SRDM_intro)
   show "M\<^sub>R(M) is R2m"
     using R2m_RD3_closed[OF nmerge_rd_is_R2m[OF RDM_R2m[OF assms]]]
     by (simp add: merge_rd_def RD3_def)
-  show "M\<^sub>R(M) is R3hm"
-    by (simp add: Healthy_def' merge_rd_def RD3_def[THEN sym] R3hm_RD3_commute
-        Healthy_if[OF nmerge_rd_is_R3hm])
-  show "M\<^sub>R(M) is RD1m"
-    by (simp add: Healthy_def' merge_rd_def RD3_def[THEN sym] RD1m_RD3_commute
-        Healthy_if[OF nmerge_rd_is_RD1m])
+  show "M\<^sub>R(M) is R3hm" "M\<^sub>R(M) is RD1m"
+    by (simp_all add: Healthy_def' merge_rd_def RD3_def[THEN sym]
+        R3hm_RD3_commute RD1m_RD3_commute
+        Healthy_if[OF nmerge_rd_is_R3hm] Healthy_if[OF nmerge_rd_is_RD1m])
   show "M\<^sub>R(M) is RD2"
     by (rule merge_rd_is_RD2)
 qed
@@ -460,6 +453,11 @@ lemma Miracle_parallel_Chaos:
 
 subsubsection \<open> Chaos Zero: Exact Criterion \<close>
 
+(* Chaos \<equiv> (\<not>ok \<and> tr \<le> tr') \<or>
+           (ok \<and> wait \<and> ok' \<and> wait' \<and> tr' = tr \<and> e' = e) \<or>
+           (ok \<and> \<not>wait \<and> tr \<le> tr').
+   e/e' denote extension observations; the output state s' is unrestricted. *)
+
 text \<open>
   For an active prior, divergence requires a divergent branch pair and
   a feasible merged trace. Such a pair admits every output extending that
@@ -489,30 +487,9 @@ lemma rdes_parallel_divergentI:
   by (auto simp: par_by_merge_eval merge_rd_eval[OF merge])
 
 text \<open>
-  At the prior trace, divergence forces the merge witness to have that
-  same trace: an RDM merge cannot shorten it.
-\<close>
-
-lemma rdes_parallel_divergent_at_prior_iff:
-  fixes P Q :: "('s, 't::trace, 'a) rsp_hrel"
-  assumes merge: "M is RDM"
-      and active: "ok\<^sub>v x" "\<not> wait\<^sub>v x"
-  shows "(P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q) (x,des_vars.ok\<^sub>v_update (\<lambda>_. False) x) \<longleftrightarrow>
-    (\<exists>p q u. P (x,p) \<and> Q (x,q) \<and>
-      \<not> (ok\<^sub>v p \<and> ok\<^sub>v q) \<and>
-      merge_eval M x p q u \<and> tr\<^sub>v u = tr\<^sub>v x)"
-proof -
-  have trace: "(merge_eval M x p q u \<and> tr\<^sub>v u \<le> tr\<^sub>v x) =
-      (merge_eval M x p q u \<and> tr\<^sub>v u = tr\<^sub>v x)" for p q u
-    using RDM_trace_growth[OF merge, of x p q u]
-    by (auto intro: antisym)
-  show ?thesis
-    by (simp add: rdes_parallel_divergent_eval[OF merge active] trace)
-qed
-
-text \<open>
-  The Chaos criterion combines prior-trace feasibility with the introduction
-  rule. The merge witness need not have the final output's program state.
+  At the prior trace, RDM trace growth makes the feasible witness trace equal
+  to the prior trace. The converse uses divergence introduction; the witness
+  need not have the final output's program state.
 \<close>
 
 lemma rdes_parallel_Chaos_iff:
@@ -524,10 +501,21 @@ lemma rdes_parallel_Chaos_iff:
         \<not> (ok\<^sub>v p \<and> ok\<^sub>v q) \<and> merge_eval M x p q u \<and>
         tr\<^sub>v u = tr\<^sub>v x))" (is "_ \<longleftrightarrow> ?feasible")
 proof
+  have trace: "(merge_eval M x p q u \<and> tr\<^sub>v u \<le> tr\<^sub>v x) =
+      (merge_eval M x p q u \<and> tr\<^sub>v u = tr\<^sub>v x)" for x p q u
+    using RDM_trace_growth[OF M, of x p q u]
+    by (auto intro: antisym)
   assume eq: "P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q = Chaos"
   show ?feasible
-    by (intro allI impI; subst rdes_parallel_divergent_at_prior_iff[OF M, symmetric];
-        simp_all add: eq Chaos_eval)
+  proof (intro allI impI)
+    fix x :: "('s, 't, 'a) rsp"
+    assume active: "ok\<^sub>v x \<and> \<not> wait\<^sub>v x"
+    have "(P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q) (x, des_vars.ok\<^sub>v_update (\<lambda>_. False) x)"
+      using eq active by (simp add: Chaos_eval)
+    then show "\<exists>p q u. P (x,p) \<and> Q (x,q) \<and>
+        \<not> (ok\<^sub>v p \<and> ok\<^sub>v q) \<and> merge_eval M x p q u \<and> tr\<^sub>v u = tr\<^sub>v x"
+      using active by (simp add: rdes_parallel_divergent_eval[OF M] trace)
+  qed
 next
   assume witnesses: ?feasible
   show "P \<parallel>\<^sub>R\<^bsub>M\<^esub> Q = Chaos"
