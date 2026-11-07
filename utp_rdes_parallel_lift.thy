@@ -1,0 +1,274 @@
+section \<open> Ordinary reactive design parallel from a trace and extension merge \<close>
+
+theory utp_rdes_parallel_lift
+  imports utp_rdes_parallel_laws
+begin
+
+text \<open>
+  The raw lift applies @{term j} to traces and extension observations,
+  conjoins branch @{term ok} flags, and disjoins branch @{term wait} flags.
+  @{const RADm} makes the merge RD-healthy; @{const RD3c} adds reactive skip
+  completion. The stateful lift is in @{text utp_srdes_parallel_lift}.
+\<close>
+
+subsection \<open> Lifting a Trace and Extension Merge \<close>
+
+subsubsection \<open> Construction \<close>
+
+(* rdes_lift_merge_raw j ((ok,wait,tr,s), (okL,waitL,trL,sL), (okR,waitR,trR,sR), (ok',wait',tr',s')) =
+     ok' = (okL \<and> okR) \<and>
+     wait' = (waitL \<or> waitR) \<and>
+     j((tr,s), (trL,sL), (trR,sR), (tr',s')) *)
+definition rdes_lift_merge_raw ::
+  "('t::trace \<times> 'a) merge \<Rightarrow> ('t, 'a) rp merge" where
+  [pred]: "rdes_lift_merge_raw j \<equiv> (\<lambda>(m,z).
+    let x = mrg_prior\<^sub>v m; p = mrg_left\<^sub>v m; q = mrg_right\<^sub>v m
+    in ok\<^sub>v z = (ok\<^sub>v p \<and> ok\<^sub>v q) \<and>
+       wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
+       merge_eval j (tr\<^sub>v x, rea_vars.more x)
+         (tr\<^sub>v p, rea_vars.more p) (tr\<^sub>v q, rea_vars.more q)
+         (tr\<^sub>v z, rea_vars.more z))"
+
+(* rdes_lift_merge = RD3c \<circ> RADm \<circ> rdes_lift_merge_raw,
+     cf. merge_des = H3m \<circ> HDM \<circ> merge_des_raw *)
+definition rdes_lift_merge ::
+  "('t::trace \<times> 'a) merge \<Rightarrow> ('t, 'a) rp merge" where
+  "rdes_lift_merge j \<equiv> RD3c (RADm (rdes_lift_merge_raw j))"
+
+subsubsection \<open> Evaluation \<close>
+
+lemma RADm_rdes_lift_merge_raw_eval:
+  "merge_eval (RADm (rdes_lift_merge_raw j)) x p q z =
+    ((\<not> ok\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or>
+    (ok\<^sub>v x \<and> wait\<^sub>v x \<and> z = x) \<or>
+    (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and>
+      ((ok\<^sub>v p \<and> ok\<^sub>v q) \<longrightarrow> ok\<^sub>v z) \<and>
+      wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
+      tr\<^sub>v x \<le> tr\<^sub>v z \<and>
+      merge_eval j (0, rea_vars.more x)
+        (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p)
+        (tr\<^sub>v q - tr\<^sub>v x, rea_vars.more q)
+        (tr\<^sub>v z - tr\<^sub>v x, rea_vars.more z)))"
+  by (simp add: RADm_def R3cm_def RD2_def H2_split; pred_auto)
+
+lemma rdes_lift_merge_seq_eval:
+  "merge_eval (rdes_lift_merge j) x p q z =
+    (\<exists>u. merge_eval (RADm (rdes_lift_merge_raw j)) x p q u \<and>
+      (z = u \<or> (\<not> ok\<^sub>v u \<and> tr\<^sub>v u \<le> tr\<^sub>v z)))"
+  by (simp only: rdes_lift_merge_def RD3c_merge_eval)
+
+text \<open>
+  For an active prior, @{term j} uses traces relative to the prior trace.
+  With both branches ok, it constrains the output. If either diverges, it
+  needs only a witness whose trace is no longer than the final trace; the
+  output flags and extension are free. A nondivergent waiting prior is preserved.
+\<close>
+
+(* rdes_lift_merge j ((ok,wait,tr,s), (okL,waitL,trL,sL), (okR,waitR,trR,sR), (ok',wait',tr',s')) =
+     (\<not>ok \<and> tr \<le> tr') \<or>
+     (ok \<and> wait \<and> (ok',wait',tr',s') = (ok,wait,tr,s)) \<or>
+     (ok \<and> \<not>wait \<and> okL \<and> okR \<and> ok' \<and> wait' = (waitL \<or> waitR) \<and> tr \<le> tr' \<and>
+        j((0,s), (trL-tr,sL), (trR-tr,sR), (tr'-tr,s'))) \<or>
+     (ok \<and> \<not>wait \<and> \<not>(okL \<and> okR) \<and> tr \<le> tr' \<and>
+        (\<exists>t e. t \<le> tr'-tr \<and> j((0,s), (trL-tr,sL), (trR-tr,sR), (t,e)))) *)
+lemma rdes_lift_merge_eval:
+  fixes x p q z :: "('t::trace, 'a) rp" and j :: "('t \<times> 'a) merge"
+  shows "merge_eval (rdes_lift_merge j) x p q z =
+    ((\<not> ok\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or>
+    (ok\<^sub>v x \<and> wait\<^sub>v x \<and> z = x) \<or>
+    (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q \<and> ok\<^sub>v z \<and>
+      wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and> tr\<^sub>v x \<le> tr\<^sub>v z \<and>
+      merge_eval j (0, rea_vars.more x)
+        (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p)
+        (tr\<^sub>v q - tr\<^sub>v x, rea_vars.more q)
+        (tr\<^sub>v z - tr\<^sub>v x, rea_vars.more z)) \<or>
+    (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> \<not> (ok\<^sub>v p \<and> ok\<^sub>v q) \<and> tr\<^sub>v x \<le> tr\<^sub>v z \<and>
+      (\<exists>t e. t \<le> tr\<^sub>v z - tr\<^sub>v x \<and> merge_eval j (0, rea_vars.more x)
+          (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p)
+          (tr\<^sub>v q - tr\<^sub>v x, rea_vars.more q) (t, e))))"
+    (is "?L = ?R")
+proof
+  assume ?L
+  then obtain u where "merge_eval (RADm (rdes_lift_merge_raw j)) x p q u"
+    and "z = u \<or> (\<not> ok\<^sub>v u \<and> tr\<^sub>v u \<le> tr\<^sub>v z)"
+    by (auto simp only: rdes_lift_merge_seq_eval)
+  then show ?R
+    using minus_cancel_le[of "tr\<^sub>v x" "tr\<^sub>v u" "tr\<^sub>v z"]
+      order_trans[of "tr\<^sub>v x" "tr\<^sub>v u" "tr\<^sub>v z"]
+    by (cases "ok\<^sub>v x"; cases "wait\<^sub>v x"; cases "ok\<^sub>v p \<and> ok\<^sub>v q";
+        auto simp: RADm_rdes_lift_merge_raw_eval)
+next
+  assume r: ?R
+  show ?L
+  proof (cases "ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> \<not> (ok\<^sub>v p \<and> ok\<^sub>v q)")
+    case False
+    with r show ?thesis
+      unfolding rdes_lift_merge_seq_eval
+      by (auto simp: RADm_rdes_lift_merge_raw_eval)
+  next
+    case True
+    with r obtain t e where hz: "tr\<^sub>v x \<le> tr\<^sub>v z" and ht: "t \<le> tr\<^sub>v z - tr\<^sub>v x"
+      and je: "merge_eval j (0, rea_vars.more x)
+        (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p) (tr\<^sub>v q - tr\<^sub>v x, rea_vars.more q) (t, e)"
+      by blast
+    from True je add_left_mono[OF ht, of "tr\<^sub>v x"] hz show ?thesis
+      unfolding rdes_lift_merge_seq_eval
+      by (intro exI[where x="\<lparr>ok\<^sub>v = False, wait\<^sub>v = (wait\<^sub>v p \<or> wait\<^sub>v q),
+            tr\<^sub>v = tr\<^sub>v x + t, \<dots> = e\<rparr>"])
+        (simp add: RADm_rdes_lift_merge_raw_eval diff_add_cancel_left')
+  qed
+qed
+
+subsubsection \<open> Healthiness \<close>
+
+lemma rdes_lift_merge_RADm [closure]: "rdes_lift_merge j is RADm"
+  by (simp add: rdes_lift_merge_def RD3c_RADm RADm_healthy)
+
+lemma rdes_lift_merge_healths [closure]:
+  "rdes_lift_merge j is R1m"
+  "rdes_lift_merge j is R2m"
+  "rdes_lift_merge j is R3cm"
+  "rdes_lift_merge j is RD1m"
+  "rdes_lift_merge j is RD2"
+  using rdes_lift_merge_RADm RADm_R1m RADm_healthy_iff by blast+
+
+subsubsection \<open> Monotonicity and Symmetry \<close>
+
+lemma rdes_lift_merge_mono:
+  "j \<sqsubseteq> k \<Longrightarrow> rdes_lift_merge j \<sqsubseteq> rdes_lift_merge k"
+proof -
+  assume assms: "j \<sqsubseteq> k"
+  show ?thesis
+  unfolding rdes_lift_merge_def RD3c_def
+    apply (rule seqr_mono[OF RADm_mono])
+    using assms by (auto simp: pred_refine_iff rdes_lift_merge_raw_def Let_def)
+qed
+
+lemma RADm_rdes_lift_merge_raw_SymMerge:
+  "j is SymMerge \<Longrightarrow> RADm (rdes_lift_merge_raw j) is SymMerge"
+proof -
+  assume assms: "j is SymMerge"
+  have swap: "merge_eval j x p q z = merge_eval j x q p z" for x p q z
+    using assms unfolding SymMerge_eval by blast
+  have "rdes_lift_merge_raw j is SymMerge"
+    by (simp add: SymMerge_eval rdes_lift_merge_raw_def Let_def swap
+        conj_commute disj_commute)
+  then show ?thesis by (rule RADm_SymMerge)
+qed
+
+lemma rdes_lift_merge_SymMerge:
+  "j is SymMerge \<Longrightarrow> rdes_lift_merge j is SymMerge"
+proof -
+  assume assms: "j is SymMerge"
+  show ?thesis
+  using RADm_rdes_lift_merge_raw_SymMerge[OF assms]
+    by (simp add: Healthy_def' seqr_assoc[THEN sym] rdes_lift_merge_def RD3c_def)
+qed
+
+subsection \<open> Parallel with the Lifted Merge \<close>
+
+abbreviation rdes_lift_par ::
+  "('t::trace, 'a) rp_hrel \<Rightarrow> ('t \<times> 'a) merge \<Rightarrow>
+    ('t, 'a) rp_hrel \<Rightarrow> ('t, 'a) rp_hrel"
+  ("_ \<parallel>\<^sub>R\<^sub>D\<^bsub>_\<^esub> _" [85,0,86] 85)
+where "P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q \<equiv>
+  P \<parallel>\<^bsub>rdes_lift_merge j\<^esub> Q"
+
+lemma rdes_lift_parallel_RD [closure]:
+  "\<lbrakk> P is RD; Q is RD \<rbrakk> \<Longrightarrow> (P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) is RD"
+proof -
+  assume assms: "P is RD" "Q is RD"
+  show ?thesis
+  by (rule RD_par_by_RADm[OF assms rdes_lift_merge_RADm])
+qed
+
+lemma rdes_lift_parallel_comm:
+  "j is SymMerge \<Longrightarrow> P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q = Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P"
+proof -
+  assume assms: "j is SymMerge"
+  show ?thesis
+  by (rule par_by_merge_comm[OF rdes_lift_merge_SymMerge[OF assms]])
+qed
+
+subsubsection \<open> Associativity for Nondivergent Operands \<close>
+
+text \<open>
+  Completion can extend a divergent intermediate trace, breaking associativity.
+  The premises keep branch results ok at active priors, where completion agrees
+  with the uncompleted merge.
+\<close>
+
+lemma rdes_lift_parallel_assoc_nondiv:
+  fixes j :: "('t::trace \<times> 'a) merge"
+  shows "\<lbrakk> j is SymMerge; AssocMerge j; P is R1; Q is R1; R is R1;
+     pre\<^sub>R P = true\<^sub>r; pre\<^sub>R Q = true\<^sub>r; pre\<^sub>R R = true\<^sub>r \<rbrakk> \<Longrightarrow>
+    (P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
+    P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
+proof -
+  assume assms: "j is SymMerge" "AssocMerge j" "P is R1" "Q is R1" "R is R1"
+    "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
+  let ?N = "RADm (rdes_lift_merge_raw j)"
+  have eval: "merge_eval (RD2 (rdes_lift_merge_raw j)) x p q z =
+      (((ok\<^sub>v p \<and> ok\<^sub>v q) \<longrightarrow> ok\<^sub>v z) \<and> wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
+      merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
+        (tr\<^sub>v q, rea_vars.more q) (tr\<^sub>v z, rea_vars.more z))" for x p q z
+    by (simp add: RD2_def H2_split rdes_lift_merge_raw_def; pred_auto)
+  have fold: "(\<exists>u. merge_eval (RD2 (rdes_lift_merge_raw j)) x p q u \<and>
+      merge_eval (RD2 (rdes_lift_merge_raw j)) x u r z) =
+    (((ok\<^sub>v p \<and> ok\<^sub>v q \<and> ok\<^sub>v r) \<longrightarrow> ok\<^sub>v z) \<and>
+    wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q \<or> wait\<^sub>v r) \<and>
+    (\<exists>a. merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
+        (tr\<^sub>v q, rea_vars.more q) a \<and>
+      merge_eval j (tr\<^sub>v x, rea_vars.more x) a (tr\<^sub>v r, rea_vars.more r)
+        (tr\<^sub>v z, rea_vars.more z)))" (is "?L = ?R") for x p q r z
+  proof
+    assume ?L
+    then show ?R by (auto simp: eval)
+  next
+    assume r: ?R
+    then obtain t e where
+      "merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
+        (tr\<^sub>v q, rea_vars.more q) (t,e)"
+      "merge_eval j (tr\<^sub>v x, rea_vars.more x) (t,e) (tr\<^sub>v r, rea_vars.more r)
+        (tr\<^sub>v z, rea_vars.more z)"
+      by (metis surj_pair)
+    with r show ?L
+      by (intro exI[where x="\<lparr>ok\<^sub>v = (ok\<^sub>v p \<and> ok\<^sub>v q), wait\<^sub>v = (wait\<^sub>v p \<or> wait\<^sub>v q),
+          tr\<^sub>v = t, \<dots> = e\<rparr>"]) (auto simp: eval)
+  qed
+  have "AssocMerge (RD2 (rdes_lift_merge_raw j))"
+    using assms(2) unfolding AssocMerge_cyclic_eval by (simp only: fold; blast)
+  then have assoc: "AssocMerge ?N" by (rule RADm_AssocMerge_RD2)
+  let ?M = "rdes_lift_merge j"
+  let ?G = "\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+  have sym: "?N is SymMerge"
+    by (rule RADm_rdes_lift_merge_raw_SymMerge[OF assms(1)])
+  have agree: "merge_eval ?M x p q z = merge_eval ?N x p q z"
+    if "?G x p" "?G x q" for x p q z
+    using that
+    by (auto simp: rdes_lift_merge_eval RADm_rdes_lift_merge_raw_eval)
+  have closed: "?G x z"
+    if "?G x p" "?G x q" "merge_eval ?M x p q z" for x p q z
+    using that by (simp only: rdes_lift_merge_eval; blast)
+  have g: "P (x,z) \<Longrightarrow> ?G x z" "Q (x,z) \<Longrightarrow> ?G x z"
+    "R (x,z) \<Longrightarrow> ?G x z" for x z
+    using assms by (blast dest: preR_true_iff[THEN iffD1])+
+  show ?thesis
+  proof (rule par_by_merge_assoc_on[OF _ g])
+    fix x p q r z :: "('t, 'a) rp"
+    assume guard: "?G x p" "?G x q" "?G x r"
+    have "(\<exists>u. merge_eval ?M x p q u \<and> merge_eval ?M x u r z) =
+        (\<exists>u. merge_eval ?N x p q u \<and> merge_eval ?N x u r z)"
+      using closed[OF guard(1,2)] agree[OF _ guard(3)]
+      by (simp only: agree[OF guard(1,2), symmetric]; blast)
+    also have "... = (\<exists>u. merge_eval ?N x q r u \<and> merge_eval ?N x p u z)"
+      using par_by_merge_assoc_iff[where M="?N"] par_by_merge_assoc[OF sym assoc] by blast
+    also have "... = (\<exists>u. merge_eval ?M x q r u \<and> merge_eval ?M x p u z)"
+      using closed[OF guard(2,3)] agree[OF guard(1)]
+      by (simp only: agree[OF guard(2,3), symmetric]; blast)
+    finally show "(\<exists>u. merge_eval ?M x p q u \<and> merge_eval ?M x u r z) =
+        (\<exists>u. merge_eval ?M x q r u \<and> merge_eval ?M x p u z)" .
+  qed
+qed
+
+end

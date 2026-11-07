@@ -151,10 +151,83 @@ lemma R3cm_eval:
      else merge_eval M x p q z)"
   by (pred_auto)
 
+(* RD3c(M)(x,p,q,z) \<leftrightarrow> \<exists>u. M(x,p,q,u) \<and> (z = u \<or> (\<not>ok(u) \<and> tr(u) \<le> tr(z))) *)
+lemma RD3c_merge_eval:
+  "merge_eval (RD3c M) x p q z =
+    (\<exists>u. merge_eval M x p q u \<and>
+      (z = u \<or> (\<not> des_vars.ok\<^sub>v u \<and> rea_vars.tr\<^sub>v u \<le> rea_vars.tr\<^sub>v z)))"
+  by (simp add: RD3c_def skip_rea_def; pred_auto)
+
 lemma RADm_unstarted:
   assumes "\<not> des_vars.ok\<^sub>v x"
   shows "merge_eval (RADm M) x p q z \<longleftrightarrow> rea_vars.tr\<^sub>v x \<le> rea_vars.tr\<^sub>v z"
   using assms by (simp add: RADm_def R3cm_def; pred_auto)
+
+subsection \<open> Reactive Skip Completion \<close>
+
+text \<open> @{const RD3c} commutes with each component of @{const RADm}, so
+  completing a RADm-healthy merge with reactive skip keeps it RADm-healthy. \<close>
+
+lemma RD2_RD3c_commute: "RD2 (RD3c M) = RD3c (RD2 M)"
+  by (simp only: RD3c_right_subsumes_RD2 RD3c_left_subsumes_RD2)
+
+lemma RD1m_RD3c_commute:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "RD1m (RD3c M) = RD3c (RD1m M)"
+  by (rule rp_merge_eqI; simp only: RD1m_eval RD3c_merge_eval; blast intro: order_trans)
+
+lemma R3cm_RD3c_commute:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "R3cm (RD3c M) = RD3c (R3cm M)"
+  by (rule rp_merge_eqI; simp only: R3cm_eval RD3c_merge_eval;
+      auto intro: order_trans)
+
+lemma R2m_RD3c_commute:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "R2m (RD3c M) = RD3c (R2m M)"
+proof (rule rp_merge_eqI)
+  fix x p q z :: "('t, 'a) rp"
+  let ?s = "\<lambda>u. rea_vars.tr\<^sub>v_update (\<lambda>_. tr\<^sub>v u - tr\<^sub>v x) u"
+  let ?x0 = "rea_vars.tr\<^sub>v_update (\<lambda>_. 0) x"
+  show "merge_eval (R2m (RD3c M)) x p q z = merge_eval (RD3c (R2m M)) x p q z"
+  proof
+    assume "merge_eval (R2m (RD3c M)) x p q z"
+    then obtain v where hz: "tr\<^sub>v x \<le> tr\<^sub>v z" and m: "merge_eval M ?x0 (?s p) (?s q) v"
+      and c: "?s z = v \<or> (\<not> ok\<^sub>v v \<and> tr\<^sub>v v \<le> tr\<^sub>v z - tr\<^sub>v x)"
+      by (auto simp only: R2m_merge_eval RD3c_merge_eval; simp)
+    let ?u = "rea_vars.tr\<^sub>v_update (\<lambda>_. tr\<^sub>v x + tr\<^sub>v v) v"
+    have su: "?s ?u = v" by simp
+    have "merge_eval (R2m M) x p q ?u"
+      using m by (simp only: R2m_merge_eval su; simp)
+    moreover have "z = ?u \<or> (\<not> ok\<^sub>v ?u \<and> tr\<^sub>v ?u \<le> tr\<^sub>v z)"
+      using c hz
+      by (cases z rule: rea_vars.cases_scheme; cases v rule: rea_vars.cases_scheme;
+          auto simp: diff_add_cancel_left' dest: add_left_mono[where c="tr\<^sub>v x"])
+    ultimately show "merge_eval (RD3c (R2m M)) x p q z"
+      by (simp only: RD3c_merge_eval; blast)
+  next
+    assume "merge_eval (RD3c (R2m M)) x p q z"
+    then obtain u where hu: "tr\<^sub>v x \<le> tr\<^sub>v u" and m: "merge_eval M ?x0 (?s p) (?s q) (?s u)"
+      and c: "z = u \<or> (\<not> ok\<^sub>v u \<and> tr\<^sub>v u \<le> tr\<^sub>v z)"
+      by (auto simp only: RD3c_merge_eval R2m_merge_eval)
+    have hz: "tr\<^sub>v x \<le> tr\<^sub>v z" using c hu by (auto intro: order_trans)
+    have "?s z = ?s u \<or> (\<not> ok\<^sub>v (?s u) \<and> tr\<^sub>v (?s u) \<le> tr\<^sub>v (?s z))"
+      using c hu by (auto intro: minus_cancel_le)
+    then show "merge_eval (R2m (RD3c M)) x p q z"
+      using m hz by (simp only: R2m_merge_eval RD3c_merge_eval; auto)
+  qed
+qed
+
+lemma RADm_RD3c_commute:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "RADm (RD3c M) = RD3c (RADm M)"
+  by (simp add: RADm_def RD1m_RD3c_commute R3cm_RD3c_commute R2m_RD3c_commute
+      RD2_RD3c_commute)
+
+lemma RD3c_RADm [closure]:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "M is RADm \<Longrightarrow> RD3c M is RADm"
+  by (metis Healthy_def RADm_RD3c_commute)
 
 subsection \<open> Merge Algebra \<close>
 
