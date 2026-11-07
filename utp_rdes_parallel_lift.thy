@@ -7,7 +7,7 @@ begin
 text \<open>
   The raw lift applies @{term j} to traces and extension observations,
   conjoins branch @{term ok} flags, and disjoins branch @{term wait} flags.
-  @{const RADm} makes the merge RD-healthy; @{const RD3c} adds reactive skip
+  @{const ORDm} makes the merge RD-healthy; @{const RD3c} adds reactive skip
   completion. The unit-state bridge is in @{text utp_rdes_parallel_unit_state}.
 \<close>
 
@@ -29,16 +29,16 @@ definition merge_rdes_raw ::
          (tr\<^sub>v p, rea_vars.more p) (tr\<^sub>v q, rea_vars.more q)
          (tr\<^sub>v z, rea_vars.more z))"
 
-(* merge_rdes = RD3c \<circ> RADm \<circ> merge_rdes_raw,
-     cf. merge_des = H3m \<circ> HDM \<circ> merge_des_raw *)
+(* merge_rdes = RD3c \<circ> ORDm \<circ> merge_rdes_raw,
+     cf. merge_des = H3m \<circ> HDm \<circ> merge_des_raw *)
 definition merge_rdes ::
   "('t::trace \<times> 'a) merge \<Rightarrow> ('t, 'a) rp merge" where
-  "merge_rdes j \<equiv> RD3c (RADm (merge_rdes_raw j))"
+  "merge_rdes j \<equiv> RD3c (ORDm (merge_rdes_raw j))"
 
 subsubsection \<open> Evaluation \<close>
 
-lemma RADm_merge_rdes_raw_eval:
-  "merge_eval (RADm (merge_rdes_raw j)) x p q z =
+lemma ORDm_merge_rdes_raw_eval:
+  "merge_eval (ORDm (merge_rdes_raw j)) x p q z =
     ((\<not> ok\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or>
     (ok\<^sub>v x \<and> wait\<^sub>v x \<and> z = x) \<or>
     (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and>
@@ -49,11 +49,11 @@ lemma RADm_merge_rdes_raw_eval:
         (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p)
         (tr\<^sub>v q - tr\<^sub>v x, rea_vars.more q)
         (tr\<^sub>v z - tr\<^sub>v x, rea_vars.more z)))"
-  by (simp add: RADm_def R3cm_def RD2_def H2_split; pred_auto)
+  by (simp add: ORDm_def R3cm_def RD2_def H2_split; pred_auto)
 
 lemma merge_rdes_seq_eval:
   "merge_eval (merge_rdes j) x p q z =
-    (\<exists>u. merge_eval (RADm (merge_rdes_raw j)) x p q u \<and>
+    (\<exists>u. merge_eval (ORDm (merge_rdes_raw j)) x p q u \<and>
       (z = u \<or> (\<not> ok\<^sub>v u \<and> tr\<^sub>v u \<le> tr\<^sub>v z)))"
   by (simp only: merge_rdes_def RD3c_merge_eval)
 
@@ -89,14 +89,14 @@ lemma merge_rdes_eval:
     (is "?L = ?R")
 proof
   assume ?L
-  then obtain u where "merge_eval (RADm (merge_rdes_raw j)) x p q u"
+  then obtain u where "merge_eval (ORDm (merge_rdes_raw j)) x p q u"
     and "z = u \<or> (\<not> ok\<^sub>v u \<and> tr\<^sub>v u \<le> tr\<^sub>v z)"
     by (auto simp only: merge_rdes_seq_eval)
   then show ?R
     using minus_cancel_le[of "tr\<^sub>v x" "tr\<^sub>v u" "tr\<^sub>v z"]
       order_trans[of "tr\<^sub>v x" "tr\<^sub>v u" "tr\<^sub>v z"]
     by (cases "ok\<^sub>v x"; cases "wait\<^sub>v x"; cases "ok\<^sub>v p \<and> ok\<^sub>v q";
-        auto simp: RADm_merge_rdes_raw_eval)
+        auto simp: ORDm_merge_rdes_raw_eval)
 next
   assume r: ?R
   show ?L
@@ -104,7 +104,7 @@ next
     case False
     with r show ?thesis
       unfolding merge_rdes_seq_eval
-      by (auto simp: RADm_merge_rdes_raw_eval)
+      by (auto simp: ORDm_merge_rdes_raw_eval)
   next
     case True
     with r obtain t e where hz: "tr\<^sub>v x \<le> tr\<^sub>v z" and ht: "t \<le> tr\<^sub>v z - tr\<^sub>v x"
@@ -115,14 +115,14 @@ next
       unfolding merge_rdes_seq_eval
       by (intro exI[where x="\<lparr>ok\<^sub>v = False, wait\<^sub>v = (wait\<^sub>v p \<or> wait\<^sub>v q),
             tr\<^sub>v = tr\<^sub>v x + t, \<dots> = e\<rparr>"])
-        (simp add: RADm_merge_rdes_raw_eval diff_add_cancel_left')
+        (simp add: ORDm_merge_rdes_raw_eval diff_add_cancel_left')
   qed
 qed
 
 subsubsection \<open> Healthiness \<close>
 
-lemma merge_rdes_RADm [closure]: "merge_rdes j is RADm"
-  by (simp add: merge_rdes_def RD3c_RADm RADm_healthy)
+lemma merge_rdes_ORDm [closure]: "merge_rdes j is ORDm"
+  by (simp add: merge_rdes_def RD3c_ORDm ORDm_healthy)
 
 lemma merge_rdes_healths [closure]:
   "merge_rdes j is R1m"
@@ -130,7 +130,7 @@ lemma merge_rdes_healths [closure]:
   "merge_rdes j is R3cm"
   "merge_rdes j is RD1m"
   "merge_rdes j is RD2"
-  using merge_rdes_RADm RADm_R1m RADm_healthy_iff by blast+
+  using merge_rdes_ORDm ORDm_R1m ORDm_healthy_iff by blast+
 
 subsubsection \<open> Monotonicity and Symmetry \<close>
 
@@ -140,12 +140,12 @@ proof -
   assume assms: "j \<sqsubseteq> k"
   show ?thesis
   unfolding merge_rdes_def RD3c_def
-    apply (rule seqr_mono[OF RADm_mono])
+    apply (rule seqr_mono[OF ORDm_mono])
     using assms by (auto simp: pred_refine_iff merge_rdes_raw_def Let_def)
 qed
 
-lemma RADm_merge_rdes_raw_SymMerge:
-  "j is SymMerge \<Longrightarrow> RADm (merge_rdes_raw j) is SymMerge"
+lemma ORDm_merge_rdes_raw_SymMerge:
+  "j is SymMerge \<Longrightarrow> ORDm (merge_rdes_raw j) is SymMerge"
 proof -
   assume assms: "j is SymMerge"
   have swap: "merge_eval j x p q z = merge_eval j x q p z" for x p q z
@@ -153,7 +153,7 @@ proof -
   have "merge_rdes_raw j is SymMerge"
     by (simp add: SymMerge_eval merge_rdes_raw_def Let_def swap
         conj_commute disj_commute)
-  then show ?thesis by (rule RADm_SymMerge)
+  then show ?thesis by (rule ORDm_SymMerge)
 qed
 
 lemma merge_rdes_SymMerge:
@@ -161,7 +161,7 @@ lemma merge_rdes_SymMerge:
 proof -
   assume assms: "j is SymMerge"
   show ?thesis
-  using RADm_merge_rdes_raw_SymMerge[OF assms]
+  using ORDm_merge_rdes_raw_SymMerge[OF assms]
     by (simp add: Healthy_def' seqr_assoc[THEN sym] merge_rdes_def RD3c_def)
 qed
 
@@ -179,7 +179,7 @@ lemma rdes_lift_parallel_RD [closure]:
 proof -
   assume assms: "P is RD" "Q is RD"
   show ?thesis
-  by (rule RD_par_by_RADm[OF assms merge_rdes_RADm])
+  by (rule RD_par_by_ORDm[OF assms merge_rdes_ORDm])
 qed
 
 lemma rdes_lift_parallel_comm:
@@ -200,14 +200,17 @@ text \<open>
 
 lemma rdes_lift_parallel_assoc_nondiv:
   fixes j :: "('t::trace \<times> 'a) merge"
-  shows "\<lbrakk> j is SymMerge; AssocMerge j; P is R1; Q is R1; R is R1;
-     pre\<^sub>R P = true\<^sub>r; pre\<^sub>R Q = true\<^sub>r; pre\<^sub>R R = true\<^sub>r \<rbrakk> \<Longrightarrow>
-    (P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
+  assumes merge: "j is SymMerge" "AssocMerge j"
+      and rd: "P is RD" "Q is RD" "R is RD"
+      and nondiv: "P is NDRD" "Q is NDRD" "R is NDRD"
+  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
     P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
 proof -
-  assume assms: "j is SymMerge" "AssocMerge j" "P is R1" "Q is R1" "R is R1"
-    "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
-  let ?N = "RADm (merge_rdes_raw j)"
+  let ?M = "merge_rdes j" and ?N = "ORDm (merge_rdes_raw j)"
+  let ?G = "\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+  have ex_rp: "(\<exists>u. F u) = (\<exists>b w t e. F \<lparr>ok\<^sub>v = b, wait\<^sub>v = w, tr\<^sub>v = t, \<dots> = e\<rparr>)"
+    for F :: "('t, 'a) rp \<Rightarrow> bool"
+    by (metis rea_vars.surjective)
   have eval: "merge_eval (RD2 (merge_rdes_raw j)) x p q z =
       (((ok\<^sub>v p \<and> ok\<^sub>v q) \<longrightarrow> ok\<^sub>v z) \<and> wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
       merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
@@ -220,39 +223,20 @@ proof -
     (\<exists>a. merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
         (tr\<^sub>v q, rea_vars.more q) a \<and>
       merge_eval j (tr\<^sub>v x, rea_vars.more x) a (tr\<^sub>v r, rea_vars.more r)
-        (tr\<^sub>v z, rea_vars.more z)))" (is "?L = ?R") for x p q r z
-  proof
-    assume ?L
-    then show ?R by (auto simp: eval)
-  next
-    assume r: ?R
-    then obtain t e where
-      "merge_eval j (tr\<^sub>v x, rea_vars.more x) (tr\<^sub>v p, rea_vars.more p)
-        (tr\<^sub>v q, rea_vars.more q) (t,e)"
-      "merge_eval j (tr\<^sub>v x, rea_vars.more x) (t,e) (tr\<^sub>v r, rea_vars.more r)
-        (tr\<^sub>v z, rea_vars.more z)"
-      by (metis surj_pair)
-    with r show ?L
-      by (intro exI[where x="\<lparr>ok\<^sub>v = (ok\<^sub>v p \<and> ok\<^sub>v q), wait\<^sub>v = (wait\<^sub>v p \<or> wait\<^sub>v q),
-          tr\<^sub>v = t, \<dots> = e\<rparr>"]) (auto simp: eval)
-  qed
-  have "AssocMerge (RD2 (merge_rdes_raw j))"
-    using assms(2) unfolding AssocMerge_cyclic_eval by (simp only: fold; blast)
-  then have assoc: "AssocMerge ?N" by (rule RADm_AssocMerge_RD2)
-  let ?M = "merge_rdes j"
-  let ?G = "\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
-  have sym: "?N is SymMerge"
-    by (rule RADm_merge_rdes_raw_SymMerge[OF assms(1)])
+        (tr\<^sub>v z, rea_vars.more z)))" for x p q r z
+    by (simp add: eval ex_rp ex_bool_eq; blast)
+  have assoc: "AssocMerge (RD2 (merge_rdes_raw j))"
+    using merge(2) unfolding AssocMerge_cyclic_eval by (simp only: fold; blast)
   have agree: "merge_eval ?M x p q z = merge_eval ?N x p q z"
     if "?G x p" "?G x q" for x p q z
-    using that
-    by (auto simp: merge_rdes_eval RADm_merge_rdes_raw_eval)
+    using that by (auto simp: merge_rdes_eval ORDm_merge_rdes_raw_eval)
   have closed: "?G x z"
     if "?G x p" "?G x q" "merge_eval ?M x p q z" for x p q z
     using that by (simp only: merge_rdes_eval; blast)
-  have g: "P (x,z) \<Longrightarrow> ?G x z" "Q (x,z) \<Longrightarrow> ?G x z"
-    "R (x,z) \<Longrightarrow> ?G x z" for x z
-    using assms by (blast dest: preR_true_iff[THEN iffD1])+
+  have pre: "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
+    using rd nondiv by (simp_all add: NDRD_healthy_iff)
+  have g: "P (x,z) \<Longrightarrow> ?G x z" "Q (x,z) \<Longrightarrow> ?G x z" "R (x,z) \<Longrightarrow> ?G x z" for x z
+    using rd pre by (blast dest: preR_true_iff[OF RD_healths(1), THEN iffD1])+
   show ?thesis
   proof (rule par_by_merge_assoc_on[OF _ g])
     fix x p q r z :: "('t, 'a) rp"
@@ -262,7 +246,9 @@ proof -
       using closed[OF guard(1,2)] agree[OF _ guard(3)]
       by (simp only: agree[OF guard(1,2), symmetric]; blast)
     also have "... = (\<exists>u. merge_eval ?N x q r u \<and> merge_eval ?N x p u z)"
-      using par_by_merge_assoc_iff[where M="?N"] par_by_merge_assoc[OF sym assoc] by blast
+      using par_by_merge_assoc_iff[where M="?N"] par_by_merge_assoc[OF
+          ORDm_merge_rdes_raw_SymMerge[OF merge(1)] ORDm_AssocMerge_RD2[OF assoc]]
+      by blast
     also have "... = (\<exists>u. merge_eval ?M x q r u \<and> merge_eval ?M x p u z)"
       using closed[OF guard(2,3)] agree[OF guard(1)]
       by (simp only: agree[OF guard(2,3), symmetric]; blast)

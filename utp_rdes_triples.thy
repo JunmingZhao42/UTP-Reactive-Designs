@@ -730,6 +730,40 @@ lemma periR_monotone: "P \<sqsubseteq> Q \<Longrightarrow> peri\<^sub>R(P) \<sqs
 lemma postR_monotone: "P \<sqsubseteq> Q \<Longrightarrow> post\<^sub>R(P) \<sqsubseteq> post\<^sub>R(Q)"
   by (pred_auto)
 
+subsection \<open>Non-Divergent Reactive Designs\<close>
+
+(* NDRD P = P \<and> \<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r). *)
+definition NDRD :: "('t::trace, '\<alpha>) rp_hrel \<Rightarrow> ('t, '\<alpha>) rp_hrel" where
+[pred]: "NDRD P \<equiv> P \<squnion> \<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r)"
+
+lemma NDRD_idem: "NDRD (NDRD P) = NDRD P"
+  by (simp add: NDRD_def inf_assoc)
+
+lemma NDRD_Idempotent [closure]: "Idempotent NDRD"
+  by (simp add: Idempotent_def NDRD_idem)
+
+lemma NDRD_healthy_iff:
+  assumes rd: "P is RD"
+  shows "P is NDRD \<longleftrightarrow> pre\<^sub>R P = true\<^sub>r"
+proof -
+  have fixed: "P is NDRD \<longleftrightarrow> \<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r) \<sqsubseteq> P"
+    by (simp add: Healthy_def' NDRD_def ref_lattice.le_iff_sup inf_commute)
+  have pre_nd: "pre\<^sub>R (\<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r)) = true\<^sub>r"
+    by (simp add: rea_pre_RH_design rpred; pred_auto)
+  have intro: "pre\<^sub>R P = true\<^sub>r \<Longrightarrow> \<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r) \<sqsubseteq> P"
+  proof -
+    assume pre: "pre\<^sub>R P = true\<^sub>r"
+    have "\<^bold>R(true\<^sub>r \<turnstile> true\<^sub>r) \<sqsubseteq>
+        \<^bold>R(pre\<^sub>R P \<turnstile> cmt\<^sub>R P)"
+      using pre by (rule_tac rdes_refine_intro; simp)
+    then show ?thesis by (simp add: RD_reactive_design_alt[OF rd])
+  qed
+  show ?thesis
+    using fixed pre_nd intro
+    by (metis Healthy_if R1_mono R1_preR preR_antitone
+        pred_ba.order_antisym rel_theory.utp_bottom)
+qed
+
 subsection \<open> Composition laws \<close>
 
 lemma wait_unrest_R2s [unrest]: "$wait\<^sup>< \<sharp> P \<Longrightarrow> $wait\<^sup>< \<sharp> R2s P"

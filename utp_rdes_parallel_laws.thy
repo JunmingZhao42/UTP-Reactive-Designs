@@ -18,14 +18,14 @@ text \<open>
   @{const R2m} enforces trace growth and removes the common history.
   @{const RD1m} handles prior divergence, @{const RD2} output termination,
   and @{text R3cm} prior waiting with ordinary reactive skip.
-  RADm combines these conditions.
+  ORDm combines these conditions.
 \<close>
 
 definition R3cm :: "('t::trace, 'a) rp merge \<Rightarrow> ('t, 'a) rp merge" where
   [pred]: "R3cm M \<equiv> (RD1m skip\<^sub>m \<triangleleft> $(<:wait\<^sup><) \<triangleright> M)"
 
-definition RADm :: "('t::trace, 'a) rp merge \<Rightarrow> ('t, 'a) rp merge" where
-  "RADm \<equiv> RD1m \<circ> R3cm \<circ> R2m \<circ> RD2"
+definition ORDm :: "('t::trace, 'a) rp merge \<Rightarrow> ('t, 'a) rp merge" where
+  "ORDm \<equiv> RD1m \<circ> R3cm \<circ> R2m \<circ> RD2"
 
 subsubsection \<open> Component Idempotence and Monotonicity \<close>
 
@@ -82,52 +82,52 @@ lemmas R2m_RD1m_commute = RD1m_R2m_commute[THEN sym]
 lemmas R2m_RD2_commute = RD2_R2m_commute[THEN sym]
 lemmas RD1m_RD2_commute = RD2_RD1m_commute[THEN sym]
 
-subsubsection \<open> RADm Idempotence and Monotonicity \<close>
+subsubsection \<open> ORDm Idempotence and Monotonicity \<close>
 
-lemma RADm_idem: "RADm (RADm M) = RADm M"
-  by (simp add: RADm_def RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
+lemma ORDm_idem: "ORDm (ORDm M) = ORDm M"
+  by (simp add: ORDm_def RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
       RD1m_R2m_commute[symmetric] R2m_R3cm_commute RD1m_R3cm_commute[symmetric]
       RD1m_idem R3cm_idem R2m_idem RD2_idem)
 
-lemma RADm_mono: "M \<sqsubseteq> N \<Longrightarrow> RADm M \<sqsubseteq> RADm N"
-  by (simp add: RADm_def RD1m_mono R3cm_mono R2m_mono RD2_mono)
+lemma ORDm_mono: "M \<sqsubseteq> N \<Longrightarrow> ORDm M \<sqsubseteq> ORDm N"
+  by (simp add: ORDm_def RD1m_mono R3cm_mono R2m_mono RD2_mono)
 
-lemma RADm_healthy [closure]: "RADm M is RADm"
-  by (simp add: Healthy_def' RADm_idem)
+lemma ORDm_healthy [closure]: "ORDm M is ORDm"
+  by (simp add: Healthy_def' ORDm_idem)
 
-lemma RADm_Idempotent [closure]: "Idempotent RADm"
-  by (simp add: Idempotent_def RADm_idem)
+lemma ORDm_Idempotent [closure]: "Idempotent ORDm"
+  by (simp add: Idempotent_def ORDm_idem)
 
-lemma RADm_Monotonic [closure]: "Monotonic RADm"
-  by (auto simp: Monotonic_refine intro: RADm_mono)
+lemma ORDm_Monotonic [closure]: "Monotonic ORDm"
+  by (auto simp: Monotonic_refine intro: ORDm_mono)
 
-subsubsection \<open> RADm Fixed Points \<close>
+subsubsection \<open> ORDm Fixed Points \<close>
 
-lemma RADm_healths:
-  "RADm M is RD1m" "RADm M is R3cm" "RADm M is R2m" "RADm M is RD2"
-  by (simp_all add: Healthy_def' RADm_def
+lemma ORDm_healths:
+  "ORDm M is RD1m" "ORDm M is R3cm" "ORDm M is R2m" "ORDm M is RD2"
+  by (simp_all add: Healthy_def' ORDm_def
       RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
       RD1m_R2m_commute[symmetric] RD1m_R3cm_commute
       R2m_R3cm_commute RD1m_idem R3cm_idem R2m_idem RD2_idem)
 
-lemma RADm_healthy_iff:
-  "(M is RADm) \<longleftrightarrow> ((M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2))"
+lemma ORDm_healthy_iff:
+  "(M is ORDm) \<longleftrightarrow> ((M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2))"
 proof
-  assume M: "M is RADm"
+  assume M: "M is ORDm"
   show "(M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2)"
-    using RADm_healths[of M] by (simp only: Healthy_if[OF M])
+    using ORDm_healths[of M] by (simp only: Healthy_if[OF M])
 next
   assume "(M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2)"
-  then show "M is RADm" by (simp add: Healthy_def' RADm_def)
+  then show "M is ORDm" by (simp add: Healthy_def' ORDm_def)
 qed
 
 subsubsection \<open> Trace Growth \<close>
 
-lemma RADm_R1m:
-  assumes "M is RADm"
+lemma ORDm_R1m:
+  assumes "M is ORDm"
   shows "M is R1m"
 proof -
-  have h: "M is R2m" using assms by (simp add: RADm_healthy_iff)
+  have h: "M is R2m" using assms by (simp add: ORDm_healthy_iff)
   have "R1m M = R1m (R2m M)" by (simp only: Healthy_if[OF h])
   also have "... = R2m M" by (simp add: R2m_def R1m_idem)
   also have "... = M" by (rule Healthy_if[OF h])
@@ -158,15 +158,15 @@ lemma RD3c_merge_eval:
       (z = u \<or> (\<not> des_vars.ok\<^sub>v u \<and> rea_vars.tr\<^sub>v u \<le> rea_vars.tr\<^sub>v z)))"
   by (simp add: RD3c_def skip_rea_def; pred_auto)
 
-lemma RADm_unstarted:
+lemma ORDm_unstarted:
   assumes "\<not> des_vars.ok\<^sub>v x"
-  shows "merge_eval (RADm M) x p q z \<longleftrightarrow> rea_vars.tr\<^sub>v x \<le> rea_vars.tr\<^sub>v z"
-  using assms by (simp add: RADm_def R3cm_def; pred_auto)
+  shows "merge_eval (ORDm M) x p q z \<longleftrightarrow> rea_vars.tr\<^sub>v x \<le> rea_vars.tr\<^sub>v z"
+  using assms by (simp add: ORDm_def R3cm_def; pred_auto)
 
 subsection \<open> Reactive Skip Completion \<close>
 
-text \<open> @{const RD3c} commutes with each component of @{const RADm}, so
-  completing a RADm-healthy merge with reactive skip keeps it RADm-healthy. \<close>
+text \<open> @{const RD3c} commutes with each component of @{const ORDm}, so
+  completing an ORDm-healthy merge with reactive skip keeps it ORDm-healthy. \<close>
 
 lemma RD2_RD3c_commute: "RD2 (RD3c M) = RD3c (RD2 M)"
   by (simp only: RD3c_right_subsumes_RD2 RD3c_left_subsumes_RD2)
@@ -218,16 +218,16 @@ proof (rule rp_merge_eqI)
   qed
 qed
 
-lemma RADm_RD3c_commute:
+lemma ORDm_RD3c_commute:
   fixes M :: "('t::trace, 'a) rp merge"
-  shows "RADm (RD3c M) = RD3c (RADm M)"
-  by (simp add: RADm_def RD1m_RD3c_commute R3cm_RD3c_commute R2m_RD3c_commute
+  shows "ORDm (RD3c M) = RD3c (ORDm M)"
+  by (simp add: ORDm_def RD1m_RD3c_commute R3cm_RD3c_commute R2m_RD3c_commute
       RD2_RD3c_commute)
 
-lemma RD3c_RADm [closure]:
+lemma RD3c_ORDm [closure]:
   fixes M :: "('t::trace, 'a) rp merge"
-  shows "M is RADm \<Longrightarrow> RD3c M is RADm"
-  by (metis Healthy_def RADm_RD3c_commute)
+  shows "M is ORDm \<Longrightarrow> RD3c M is ORDm"
+  by (metis Healthy_def ORDm_RD3c_commute)
 
 subsection \<open> Merge Algebra \<close>
 
@@ -272,18 +272,18 @@ lemma SymMerge_RD2 [closure]:
   using assms
   by (simp add: Healthy_def' RD2_def H2_def seqr_assoc[THEN sym])
 
-lemma RADm_SymMerge:
+lemma ORDm_SymMerge:
   assumes "M is SymMerge"
-  shows "RADm M is SymMerge"
+  shows "ORDm M is SymMerge"
   using assms
-  by (simp add: RADm_def Healthy_def' fun_eq_iff RD2_def H2_split; pred_auto; blast)
+  by (simp add: ORDm_def Healthy_def' fun_eq_iff RD2_def H2_split; pred_auto; blast)
 
 subsubsection \<open> Associativity \<close>
 
 text \<open>
   @{const AssocMerge} is cyclic equality of two merge applications.
   @{const R2m} and @{const R3cm} preserve it. @{const RD1m} also preserves
-  it under R1m, which R2m supplies in @{const RADm}.
+  it under R1m, which R2m supplies in @{const ORDm}.
   The combined rule requires associativity after @{const RD2};
   for an RD2-healthy input, @{const AssocMerge} alone suffices.
 \<close>
@@ -346,23 +346,23 @@ proof -
     by (simp only: fold; blast)
 qed
 
-subsubsection \<open> RADm Associativity \<close>
+subsubsection \<open> ORDm Associativity \<close>
 
-lemma RADm_AssocMerge_RD2:
+lemma ORDm_AssocMerge_RD2:
   assumes "AssocMerge (RD2 M)"
-  shows "AssocMerge (RADm M)"
+  shows "AssocMerge (ORDm M)"
 proof -
   have trace: "R2m (RD2 M) is R1m"
     by (simp add: Healthy_def' R2m_def R1m_idem)
   have "AssocMerge (R3cm (RD1m (R2m (RD2 M))))"
     by (intro AssocMerge_R3cm AssocMerge_RD1m[OF trace] AssocMerge_R2m assms)
-  then show ?thesis by (simp only: RADm_def comp_apply RD1m_R3cm_commute)
+  then show ?thesis by (simp only: ORDm_def comp_apply RD1m_R3cm_commute)
 qed
 
-lemma RADm_AssocMerge:
+lemma ORDm_AssocMerge:
   assumes "M is RD2" "AssocMerge M"
-  shows "AssocMerge (RADm M)"
-  by (rule RADm_AssocMerge_RD2; simp only: Healthy_if[OF assms(1)] assms(2))
+  shows "AssocMerge (ORDm M)"
+  by (rule ORDm_AssocMerge_RD2; simp only: Healthy_if[OF assms(1)] assms(2))
 
 subsection \<open> Generic Parallel Laws \<close>
 
@@ -396,12 +396,12 @@ proof -
         Healthy_if[OF assms(3)] Healthy_def')
 qed
 
-lemma RD_par_by_RADm [closure]:
-  assumes "P is RD" "Q is RD" "M is RADm"
+lemma RD_par_by_ORDm [closure]:
+  assumes "P is RD" "Q is RD" "M is ORDm"
   shows "(P \<parallel>\<^bsub>M\<^esub> Q) is RD"
 proof -
   have m: "M is RD1m" "M is R3cm" "M is R2m" "M is RD2" "M is R1m"
-    using assms(3) RADm_R1m unfolding RADm_healthy_iff by auto
+    using assms(3) ORDm_R1m unfolding ORDm_healthy_iff by auto
   have h: "(P \<parallel>\<^bsub>M\<^esub> Q) is R1" "(P \<parallel>\<^bsub>M\<^esub> Q) is R2"
     "(P \<parallel>\<^bsub>M\<^esub> Q) is R3c" "(P \<parallel>\<^bsub>M\<^esub> Q) is RD1" "(P \<parallel>\<^bsub>M\<^esub> Q) is RD2"
     using assms(1,2) m
@@ -414,17 +414,17 @@ qed
 
 subsubsection \<open> Commutativity \<close>
 
-lemma RADm_parallel_comm:
+lemma ORDm_parallel_comm:
   assumes "M is SymMerge"
-  shows "P \<parallel>\<^bsub>RADm M\<^esub> Q = Q \<parallel>\<^bsub>RADm M\<^esub> P"
-  by (rule par_by_merge_comm[OF RADm_SymMerge[OF assms]])
+  shows "P \<parallel>\<^bsub>ORDm M\<^esub> Q = Q \<parallel>\<^bsub>ORDm M\<^esub> P"
+  by (rule par_by_merge_comm[OF ORDm_SymMerge[OF assms]])
 
 subsubsection \<open> Associativity \<close>
 
-lemma RADm_parallel_assoc:
+lemma ORDm_parallel_assoc:
   assumes "M is RD2" "M is SymMerge" "AssocMerge M"
-  shows "(P \<parallel>\<^bsub>RADm M\<^esub> Q) \<parallel>\<^bsub>RADm M\<^esub> R = P \<parallel>\<^bsub>RADm M\<^esub> (Q \<parallel>\<^bsub>RADm M\<^esub> R)"
-  by (rule par_by_merge_assoc[OF RADm_SymMerge[OF assms(2)]
-        RADm_AssocMerge[OF assms(1,3)]])
+  shows "(P \<parallel>\<^bsub>ORDm M\<^esub> Q) \<parallel>\<^bsub>ORDm M\<^esub> R = P \<parallel>\<^bsub>ORDm M\<^esub> (Q \<parallel>\<^bsub>ORDm M\<^esub> R)"
+  by (rule par_by_merge_assoc[OF ORDm_SymMerge[OF assms(2)]
+        ORDm_AssocMerge[OF assms(1,3)]])
 
 end
