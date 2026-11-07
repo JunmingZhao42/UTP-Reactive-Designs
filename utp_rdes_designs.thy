@@ -23,6 +23,49 @@ proof -
   finally show ?thesis .
 qed
 
+(* Chaos \<equiv> (\<not>ok \<and> tr \<le> tr') \<or>
+           (ok \<and> wait \<and> ok' \<and> wait' \<and> tr' = tr \<and> e' = e) \<or>
+           (ok \<and> \<not>wait \<and> tr \<le> tr').
+   e/e' denote extension observations; the output state s' is unrestricted. *)
+lemma Chaos_eval:
+  "Chaos (x,z) \<longleftrightarrow>
+    (\<not> ok\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or>
+    (ok\<^sub>v x \<and> wait\<^sub>v x \<and>
+      z = srea_vars.st\<^sub>v_update (\<lambda>_. st\<^sub>v z) x) \<or>
+    (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z)"
+  apply (cases x rule: srea_vars.cases_scheme;
+      cases z rule: srea_vars.cases_scheme;
+      simp add: Chaos_def; pred_auto)
+  using minus_zero_eq by blast
+
+text \<open>
+  SRD healthiness fixes the inactive cases. To establish Chaos, it suffices
+  to admit every output extending the prior trace in the active case.
+\<close>
+
+lemma SRD_Chaos_eqI:
+  fixes P :: "('s, 't::trace, 'a) rsp_hrel"
+  assumes healthy: "P is SRD"
+      and active: "\<And>x z. \<lbrakk>ok\<^sub>v x; \<not> wait\<^sub>v x; tr\<^sub>v x \<le> tr\<^sub>v z\<rbrakk> \<Longrightarrow> P (x,z)"
+  shows "P = Chaos"
+proof -
+  have r1: "R1 P = P"
+    and rd1: "RD1 P = P"
+    and r3: "R3h P = P"
+    using healthy by (simp_all add: Healthy_if SRD_healths)
+  show ?thesis
+    apply (rule ext, clarify)
+    subgoal for x z
+      using fun_cong[OF r1, of "(x,z)"] fun_cong[OF rd1, of "(x,z)"]
+        fun_cong[OF r3, of "(x,z)"] active[of x z]
+      apply (simp only: Chaos_eval R3h_cases)
+      apply (cases x rule: srea_vars.cases_scheme;
+             cases z rule: srea_vars.cases_scheme; pred_auto)
+      apply (simp_all add: ex_expr_def)
+      done
+    done
+qed
+
 lemma Miracle_def: "Miracle = \<^bold>R\<^sub>s(true \<turnstile> false)"
 proof -
   have "Miracle = SRD(false)"
