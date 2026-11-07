@@ -376,6 +376,20 @@ definition RD2 where
 text \<open> $RD2$ is just $H2$ since the type system will automatically have J identifying 
   the reactive variables as required. \<close>
 
+lemma RD2_ok_up:
+  assumes "M is RD2"
+    and "merge_eval M x p q (\<lparr>ok\<^sub>v = False, \<dots> = s'\<rparr>)"
+  shows "merge_eval M x p q (\<lparr>ok\<^sub>v = True, \<dots> = s'\<rparr>)"
+proof -
+  have "merge_eval M x p q \<lparr>ok\<^sub>v = True, \<dots> = s'\<rparr> =
+    merge_eval (H2 M) x p q \<lparr>ok\<^sub>v = True, \<dots> = s'\<rparr>"
+    using assms(1) by (simp add: Healthy_def' RD2_def)
+  also have "... = (merge_eval M x p q \<lparr>ok\<^sub>v = False, \<dots> = s'\<rparr> \<or>
+      merge_eval M x p q \<lparr>ok\<^sub>v = True, \<dots> = s'\<rparr>)"
+    by (simp add: H2_merge_eval)
+  finally show ?thesis using assms(2) by blast
+qed
+
 lemma RD2_idem: "RD2(RD2(P)) = RD2(P)"
   by (simp add: H2_idem RD2_def)
 

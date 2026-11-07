@@ -533,6 +533,14 @@ lemma periR_SUP [rdes]: "A \<noteq> {} \<Longrightarrow> peri\<^sub>R(\<Squnion>
 lemma postR_SUP [rdes]: "A \<noteq> {} \<Longrightarrow> post\<^sub>R(\<Squnion> A) = (\<Squnion> P\<in>A. post\<^sub>R(P))"
   by (pred_auto)
 
+text \<open> An R1 relation has @{term "pre\<^sub>R P = true\<^sub>r"} exactly when it
+  never diverges from an active prior. \<close>
+
+lemma preR_true_iff:
+  "P is R1 \<Longrightarrow>
+    (pre\<^sub>R P = true\<^sub>r) = (\<forall>x z. P (x,z) \<and> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z)"
+  by (simp add: pre\<^sub>R_def Healthy_def; pred_auto; metis (full_types))
+
 subsection \<open> Formation laws \<close>
 
 subsubsection \<open> Regular \<close>

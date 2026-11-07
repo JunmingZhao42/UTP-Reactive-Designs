@@ -30,6 +30,12 @@ lemma RD3_continuous: "RD3(\<Sqinter>A) = (\<Sqinter>P\<in>A. RD3(P))"
 lemma RD3_Continuous [closure]: "Continuous RD3"
   by (simp add: Continuous_def RD3_continuous)
 
+lemma RD3_mono: "M \<sqsubseteq> N \<Longrightarrow> RD3 M \<sqsubseteq> RD3 N"
+  by (simp add: RD3_def seqr_mono)
+
+lemma RD3_Monotonic [closure]: "Monotonic RD3"
+  by (rule MonotonicI, rule RD3_mono)
+
 lemma RD3_right_subsumes_RD2: "RD2(RD3(P)) = RD3(P)"
 proof -
   have a:"II\<^sub>R ;; J = II\<^sub>R"
