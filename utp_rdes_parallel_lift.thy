@@ -8,7 +8,7 @@ text \<open>
   The raw lift applies @{term j} to traces and extension observations,
   conjoins branch @{term ok} flags, and disjoins branch @{term wait} flags.
   @{const RADm} makes the merge RD-healthy; @{const RD3c} adds reactive skip
-  completion. The stateful lift is in @{text utp_srdes_parallel_lift}.
+  completion. The unit-state bridge is in @{text utp_rdes_parallel_unit_state}.
 \<close>
 
 subsection \<open> Lifting a Trace and Extension Merge \<close>
