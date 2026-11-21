@@ -179,7 +179,27 @@ lemma rdes_lift_parallel_RD [closure]:
 proof -
   assume assms: "P is RD" "Q is RD"
   show ?thesis
-  by (rule RD_par_by_ORDm[OF assms merge_rdes_ORDm])
+  by (rule RD_par_by_merge[OF assms merge_rdes_ORDm])
+qed
+
+lemma rdes_lift_parallel_NDRD [closure]:
+  assumes rd: "P is RD" "Q is RD"
+      and nondiv: "P is NDRD" "Q is NDRD"
+  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) is NDRD"
+proof -
+  have rd_par: "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) is RD"
+    by (rule rdes_lift_parallel_RD[OF rd])
+  have pre: "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r"
+    using rd nondiv by (simp_all add: NDRD_healthy_iff)
+  have branch: "P (x,z) \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+    "Q (x,z) \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z" for x z
+    using rd pre by (blast dest: preR_true_iff[OF RD_healths(1), THEN iffD1])+
+  have "\<forall>x z. (P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) (x,z) \<and>
+      ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+    using branch by (auto simp only: par_by_merge_eval merge_rdes_eval)
+  then show ?thesis
+    by (simp only: NDRD_healthy_iff[OF rd_par]
+        preR_true_iff[OF RD_healths(1)[OF rd_par]])
 qed
 
 lemma rdes_lift_parallel_comm:
@@ -192,22 +212,11 @@ qed
 
 subsubsection \<open> Associativity for Nondivergent Operands \<close>
 
-text \<open>
-  Completion can extend a divergent intermediate trace, breaking associativity.
-  The premises keep branch results ok at active priors, where completion agrees
-  with the uncompleted merge.
-\<close>
-
-lemma rdes_lift_parallel_assoc_nondiv:
+lemma ORDm_merge_rdes_raw_AssocMerge:
   fixes j :: "('t::trace \<times> 'a) merge"
-  assumes merge: "j is SymMerge" "AssocMerge j"
-      and rd: "P is RD" "Q is RD" "R is RD"
-      and nondiv: "P is NDRD" "Q is NDRD" "R is NDRD"
-  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
-    P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
+  assumes "AssocMerge j"
+  shows "AssocMerge (ORDm (merge_rdes_raw j))"
 proof -
-  let ?M = "merge_rdes j" and ?N = "ORDm (merge_rdes_raw j)"
-  let ?G = "\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
   have ex_rp: "(\<exists>u. F u) = (\<exists>b w t e. F \<lparr>ok\<^sub>v = b, wait\<^sub>v = w, tr\<^sub>v = t, \<dots> = e\<rparr>)"
     for F :: "('t, 'a) rp \<Rightarrow> bool"
     by (metis rea_vars.surjective)
@@ -225,36 +234,44 @@ proof -
       merge_eval j (tr\<^sub>v x, rea_vars.more x) a (tr\<^sub>v r, rea_vars.more r)
         (tr\<^sub>v z, rea_vars.more z)))" for x p q r z
     by (simp add: eval ex_rp ex_bool_eq; blast)
-  have assoc: "AssocMerge (RD2 (merge_rdes_raw j))"
-    using merge(2) unfolding AssocMerge_cyclic_eval by (simp only: fold; blast)
-  have agree: "merge_eval ?M x p q z = merge_eval ?N x p q z"
-    if "?G x p" "?G x q" for x p q z
-    using that by (auto simp: merge_rdes_eval ORDm_merge_rdes_raw_eval)
-  have closed: "?G x z"
-    if "?G x p" "?G x q" "merge_eval ?M x p q z" for x p q z
-    using that by (simp only: merge_rdes_eval; blast)
-  have pre: "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
-    using rd nondiv by (simp_all add: NDRD_healthy_iff)
-  have g: "P (x,z) \<Longrightarrow> ?G x z" "Q (x,z) \<Longrightarrow> ?G x z" "R (x,z) \<Longrightarrow> ?G x z" for x z
-    using rd pre by (blast dest: preR_true_iff[OF RD_healths(1), THEN iffD1])+
-  show ?thesis
-  proof (rule par_by_merge_assoc_on[OF _ g])
-    fix x p q r z :: "('t, 'a) rp"
-    assume guard: "?G x p" "?G x q" "?G x r"
-    have "(\<exists>u. merge_eval ?M x p q u \<and> merge_eval ?M x u r z) =
-        (\<exists>u. merge_eval ?N x p q u \<and> merge_eval ?N x u r z)"
-      using closed[OF guard(1,2)] agree[OF _ guard(3)]
-      by (simp only: agree[OF guard(1,2), symmetric]; blast)
-    also have "... = (\<exists>u. merge_eval ?N x q r u \<and> merge_eval ?N x p u z)"
-      using par_by_merge_assoc_iff[where M="?N"] par_by_merge_assoc[OF
-          ORDm_merge_rdes_raw_SymMerge[OF merge(1)] ORDm_AssocMerge_RD2[OF assoc]]
-      by blast
-    also have "... = (\<exists>u. merge_eval ?M x q r u \<and> merge_eval ?M x p u z)"
-      using closed[OF guard(2,3)] agree[OF guard(1)]
-      by (simp only: agree[OF guard(2,3), symmetric]; blast)
-    finally show "(\<exists>u. merge_eval ?M x p q u \<and> merge_eval ?M x u r z) =
-        (\<exists>u. merge_eval ?M x q r u \<and> merge_eval ?M x p u z)" .
-  qed
+  have "AssocMerge (RD2 (merge_rdes_raw j))"
+    using assms unfolding AssocMerge_iff by (simp only: fold; blast)
+  then show ?thesis
+    by (rule ORDm_AssocMerge_RD2)
 qed
+
+lemma merge_rdes_NDRDm [closure]: "merge_rdes j is NDRDm"
+  by (simp add: NDRDm_healthy_iff merge_rdes_eval; blast)
+
+text \<open>
+  Completion can extend a divergent intermediate trace, so @{term "merge_rdes j"}
+  is not associative in general. On branches that do not diverge from a started,
+  non-waiting prior, it agrees with the uncompleted merge.
+\<close>
+
+lemma merge_rdes_guard_AssocMerge:
+  fixes j :: "('t::trace \<times> 'a) merge"
+  assumes "AssocMerge j"
+  shows "AssocMerge (merge_guard (\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z) (merge_rdes j))"
+proof -
+  let ?G = "\<lambda>x z :: ('t, 'a) rp. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+  have eq: "merge_guard ?G (merge_rdes j) = merge_guard ?G (ORDm (merge_rdes_raw j))"
+    by (rule merge_guard_cong; auto simp: merge_rdes_eval ORDm_merge_rdes_raw_eval)
+  have "AssocMerge (merge_guard ?G (ORDm (merge_rdes_raw j)))"
+    by (rule AssocMerge_merge_guard[OF ORDm_merge_rdes_raw_AssocMerge[OF assms]];
+        auto simp: ORDm_merge_rdes_raw_eval)
+  then show ?thesis
+    by (simp only: eq)
+qed
+
+lemma rdes_lift_parallel_assoc_nd:
+  fixes j :: "('t::trace \<times> 'a) merge"
+  assumes merge: "j is SymMerge" "AssocMerge j"
+      and rd: "P is RD" "Q is RD" "R is RD"
+      and nondiv: "P is NDRD" "Q is NDRD" "R is NDRD"
+  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R =
+    P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
+  by (rule par_by_merge_assoc_NDRD[OF rd nondiv merge_rdes_SymMerge[OF merge(1)]
+        merge_rdes_NDRDm merge_rdes_guard_AssocMerge[OF merge(2)]])
 
 end

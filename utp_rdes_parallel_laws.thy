@@ -46,17 +46,11 @@ lemma RD1m_mono: "M \<sqsubseteq> N \<Longrightarrow> RD1m M \<sqsubseteq> RD1m 
 lemma RD1m_Monotonic [closure]: "Monotonic RD1m"
   by (rule MonotonicI, rule RD1m_mono)
 
-lemma R3cm_idem: "R3cm (R3cm M) = R3cm M"
-  by (pred_auto)
-
-lemma R3cm_mono: "M \<sqsubseteq> N \<Longrightarrow> R3cm M \<sqsubseteq> R3cm N"
-  by (pred_auto)
-
 lemma R3cm_Idempotent [closure]: "Idempotent R3cm"
-  by (simp add: Idempotent_def R3cm_idem)
+  by (rule IdempotentI, pred_auto)
 
 lemma R3cm_Monotonic [closure]: "Monotonic R3cm"
-  by (auto simp: Monotonic_refine intro: R3cm_mono)
+  by (rule MonotonicI, pred_auto)
 
 subsubsection \<open> Component Commutation \<close>
 
@@ -84,42 +78,47 @@ lemmas RD1m_RD2_commute = RD2_RD1m_commute[THEN sym]
 
 subsubsection \<open> ORDm Idempotence and Monotonicity \<close>
 
-lemma ORDm_idem: "ORDm (ORDm M) = ORDm M"
-  by (simp add: ORDm_def RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
+lemma ORDm_Idempotent [closure]: "Idempotent ORDm"
+  by (rule IdempotentI, simp add: ORDm_def RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
       RD1m_R2m_commute[symmetric] R2m_R3cm_commute RD1m_R3cm_commute[symmetric]
-      RD1m_idem R3cm_idem R2m_idem RD2_idem)
+      RD1m_idem R3cm_Idempotent[unfolded Idempotent_def] R2m_idem RD2_idem)
 
 lemma ORDm_mono: "M \<sqsubseteq> N \<Longrightarrow> ORDm M \<sqsubseteq> ORDm N"
-  by (simp add: ORDm_def RD1m_mono R3cm_mono R2m_mono RD2_mono)
-
-lemma ORDm_healthy [closure]: "ORDm M is ORDm"
-  by (simp add: Healthy_def' ORDm_idem)
-
-lemma ORDm_Idempotent [closure]: "Idempotent ORDm"
-  by (simp add: Idempotent_def ORDm_idem)
+  by (simp add: ORDm_def RD1m_mono R3cm_Monotonic[unfolded Monotonic_refine] R2m_mono RD2_mono)
 
 lemma ORDm_Monotonic [closure]: "Monotonic ORDm"
-  by (auto simp: Monotonic_refine intro: ORDm_mono)
+  by (rule MonotonicI, rule ORDm_mono)
+
+lemma ORDm_healthy [closure]: "ORDm M is ORDm"
+  by (rule Healthy_Idempotent[OF ORDm_Idempotent])
 
 subsubsection \<open> ORDm Fixed Points \<close>
-
-lemma ORDm_healths:
-  "ORDm M is RD1m" "ORDm M is R3cm" "ORDm M is R2m" "ORDm M is RD2"
-  by (simp_all add: Healthy_def' ORDm_def
-      RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
-      RD1m_R2m_commute[symmetric] RD1m_R3cm_commute
-      R2m_R3cm_commute RD1m_idem R3cm_idem R2m_idem RD2_idem)
 
 lemma ORDm_healthy_iff:
   "(M is ORDm) \<longleftrightarrow> ((M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2))"
 proof
   assume M: "M is ORDm"
-  show "(M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2)"
-    using ORDm_healths[of M] by (simp only: Healthy_if[OF M])
+  have "ORDm M is RD1m" "ORDm M is R3cm" "ORDm M is R2m" "ORDm M is RD2"
+    by (simp_all add: Healthy_def' ORDm_def
+        RD2_RD1m_commute RD2_R3cm_commute RD2_R2m_commute
+        RD1m_R2m_commute[symmetric] RD1m_R3cm_commute R2m_R3cm_commute
+        RD1m_idem R3cm_Idempotent[unfolded Idempotent_def] R2m_idem RD2_idem)
+  then show "(M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2)"
+    by (simp only: Healthy_if[OF M])
 next
   assume "(M is RD1m) \<and> (M is R3cm) \<and> (M is R2m) \<and> (M is RD2)"
   then show "M is ORDm" by (simp add: Healthy_def' ORDm_def)
 qed
+
+lemma ORDm_healths [closure]:
+  assumes "M is ORDm"
+  shows "M is RD1m" "M is R3cm" "M is R2m" "M is RD2"
+  using assms by (simp_all add: ORDm_healthy_iff)
+
+lemma ORDm_intro:
+  assumes "M is RD1m" "M is R3cm" "M is R2m" "M is RD2"
+  shows "M is ORDm"
+  by (simp add: ORDm_healthy_iff assms)
 
 subsubsection \<open> Trace Growth \<close>
 
@@ -132,6 +131,26 @@ proof -
   also have "... = R2m M" by (simp add: R2m_def R1m_idem)
   also have "... = M" by (rule Healthy_if[OF h])
   finally show ?thesis by (simp only: Healthy_def')
+qed
+
+subsubsection \<open> Design Merge Healthiness \<close>
+
+text \<open>
+  We can read @{const ORDm} as design merge healthiness followed by the reactive
+  conditions: @{const RD2} on merges is @{const H2m}, and @{const RD1m} after
+  @{const R2m} is @{const H1m} before it.
+\<close>
+
+lemma ORDm_HDm:
+  fixes M :: "('t::trace, 'a) rp merge"
+  shows "ORDm M = R3cm (R2m (HDm M))"
+proof -
+  have rd2: "RD2 N = H2m N" for N :: "('t, 'a) rp merge"
+    by (simp add: RD2_def H2_def H2m_def)
+  have rd1: "RD1m (R2m N) = R2m (H1m N)" for N :: "('t, 'a) rp merge"
+    by pred_auto
+  show ?thesis
+    by (simp add: ORDm_def HDm_def RD1m_R3cm_commute rd1 rd2)
 qed
 
 subsection \<open> Merge Evaluation \<close>
@@ -284,8 +303,7 @@ text \<open>
   @{const AssocMerge} is cyclic equality of two merge applications.
   @{const R2m} and @{const R3cm} preserve it. @{const RD1m} also preserves
   it under R1m, which R2m supplies in @{const ORDm}.
-  The combined rule requires associativity after @{const RD2};
-  for an RD2-healthy input, @{const AssocMerge} alone suffices.
+  The combined rule requires associativity after @{const RD2}.
 \<close>
 
 lemma AssocMerge_RD1m:
@@ -302,7 +320,7 @@ proof -
       (\<exists>u. merge_eval M x p q u \<and> merge_eval M x u r z)
      else tr\<^sub>v x \<le> tr\<^sub>v z)" for x p q r z
     by (cases "ok\<^sub>v x"; simp add: RD1m_eval; blast dest: bound intro: exI[where x=x])
-  show ?thesis using assoc unfolding AssocMerge_cyclic_eval
+  show ?thesis using assoc unfolding AssocMerge_iff
     by (simp only: fold if_bool_eq_conj; blast)
 qed
 
@@ -317,7 +335,7 @@ proof -
      else (\<exists>u. merge_eval M x p q u \<and> merge_eval M x u r z))"
     for x p q r z
     by (cases "wait\<^sub>v x"; simp add: R3cm_eval; blast intro: exI[where x=x])
-  show ?thesis using assms unfolding AssocMerge_cyclic_eval
+  show ?thesis using assms unfolding AssocMerge_iff
     by (simp only: fold if_bool_eq_conj; blast)
 qed
 
@@ -342,11 +360,37 @@ proof -
     for x p q r z
     by (auto simp: R2m_merge_eval obs_def; metis restore[unfolded obs_def])
   show ?thesis
-    using assms unfolding AssocMerge_cyclic_eval
+    using assms unfolding AssocMerge_iff
     by (simp only: fold; blast)
 qed
 
 subsubsection \<open> ORDm Associativity \<close>
+
+(* Move an intermediate J step through M to the final output. *)
+lemma AssocMerge_RD2:
+  fixes M :: "('t::trace, 'a) rp merge"
+  assumes assoc: "AssocMerge M"
+    and compat: "\<And>x u v r z. \<lbrakk> J (u,v); merge_eval M x v r z \<rbrakk> \<Longrightarrow>
+      \<exists>y. merge_eval M x u r y \<and> J (y,z)"
+  shows "AssocMerge (RD2 M)"
+proof -
+  have step: "merge_eval (RD2 M) x p q z =
+      (\<exists>u. merge_eval M x p q u \<and> J (u,z))" for x p q z
+    by (simp add: RD2_def H2_def; pred_auto)
+  have refl: "J (u,u)" for u :: "('t, 'a) rp"
+    by (pred_auto)
+  have trans: "\<lbrakk> J (u,v); J (v,z) \<rbrakk> \<Longrightarrow> J (u,z)"
+    for u v z :: "('t, 'a) rp"
+    by (pred_auto)
+  have fold: "(\<exists>u. merge_eval (RD2 M) x p q u \<and>
+      merge_eval (RD2 M) x u r z) =
+    (\<exists>u y. merge_eval M x p q u \<and> merge_eval M x u r y \<and> J (y,z))"
+    for x p q r z
+    unfolding step using compat refl trans by blast
+  show ?thesis
+    using assoc unfolding AssocMerge_iff
+    by (simp only: fold; blast)
+qed
 
 lemma ORDm_AssocMerge_RD2:
   assumes "AssocMerge (RD2 M)"
@@ -359,10 +403,69 @@ proof -
   then show ?thesis by (simp only: ORDm_def comp_apply RD1m_R3cm_commute)
 qed
 
-lemma ORDm_AssocMerge:
-  assumes "M is RD2" "AssocMerge M"
-  shows "AssocMerge (ORDm M)"
-  by (rule ORDm_AssocMerge_RD2; simp only: Healthy_if[OF assms(1)] assms(2))
+subsubsection \<open> Nondivergence \<close>
+
+text \<open> @{text NDRDm} requires a started, non-waiting merge of terminating
+  branches to terminate. \<close>
+
+(* NDRDm M ((ok,s),(okL,sL),(okR,sR),(ok',s')) =
+     M (...) \<and> (ok \<and> \<not>wait \<and> okL \<and> okR \<longrightarrow> ok') *)
+definition NDRDm :: "('t::trace, 'a) rp merge \<Rightarrow> ('t, 'a) rp merge" where
+  "NDRDm M \<equiv> (\<lambda>(m,z). M (m,z) \<and>
+    (ok\<^sub>v (mrg_prior\<^sub>v m) \<and> \<not> wait\<^sub>v (mrg_prior\<^sub>v m) \<and>
+      ok\<^sub>v (mrg_left\<^sub>v m) \<and> ok\<^sub>v (mrg_right\<^sub>v m) \<longrightarrow> ok\<^sub>v z))"
+
+lemma NDRDm_eval:
+  "merge_eval (NDRDm M) x p q z =
+    (merge_eval M x p q z \<and> (ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q \<longrightarrow> ok\<^sub>v z))"
+  by (simp add: NDRDm_def)
+
+lemma NDRDm_Idempotent [closure]: "Idempotent NDRDm"
+  by (rule IdempotentI, simp add: NDRDm_def fun_eq_iff)
+
+lemma NDRDm_Monotonic [closure]: "Monotonic NDRDm"
+  by (auto simp: mono_def NDRDm_def pred_refine_iff)
+
+lemma NDRDm_healthy_iff:
+  "M is NDRDm \<longleftrightarrow>
+    (\<forall>x p q z. merge_eval M x p q z \<longrightarrow>
+      ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q \<longrightarrow> ok\<^sub>v z)"
+proof
+  assume h: "M is NDRDm"
+  show "\<forall>x p q z. merge_eval M x p q z \<longrightarrow>
+      ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q \<longrightarrow> ok\<^sub>v z"
+  proof (intro allI impI)
+    fix x p q z
+    assume "merge_eval M x p q z" "ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q"
+    then show "ok\<^sub>v z"
+      using NDRDm_eval[of M x p q z] Healthy_if[OF h] by simp
+  qed
+next
+  assume a: "\<forall>x p q z. merge_eval M x p q z \<longrightarrow>
+      ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<and> ok\<^sub>v p \<and> ok\<^sub>v q \<longrightarrow> ok\<^sub>v z"
+  show "M is NDRDm"
+    unfolding Healthy_def'
+  proof (rule ext, clarify)
+    fix m z
+    show "NDRDm M (m, z) = M (m, z)"
+      using a by (cases m; auto simp: NDRDm_def)
+  qed
+qed
+
+text \<open> @{const NDRDm} commutes with @{const R1m}, @{const R2m}, @{const R3cm} and
+  @{const RD1m}, but not with @{const RD2} in general. \<close>
+
+lemma NDRDm_R1m_commute: "NDRDm (R1m M) = R1m (NDRDm M)"
+  by (simp add: NDRDm_def fun_eq_iff; pred_auto)
+
+lemma NDRDm_R2m_commute: "NDRDm (R2m M) = R2m (NDRDm M)"
+  by (simp add: NDRDm_def fun_eq_iff; pred_auto)
+
+lemma NDRDm_R3cm_commute: "NDRDm (R3cm M) = R3cm (NDRDm M)"
+  by (simp add: NDRDm_def R3cm_def fun_eq_iff; pred_auto)
+
+lemma NDRDm_RD1m_commute: "NDRDm (RD1m M) = RD1m (NDRDm M)"
+  by (simp add: NDRDm_def fun_eq_iff; pred_auto)
 
 subsection \<open> Generic Parallel Laws \<close>
 
@@ -375,7 +478,7 @@ text \<open>
   The rules below add R3c and RD closure for the supplied merge.
 \<close>
 
-lemma R3cm_par_by_merge:
+lemma R3c_par_by_merge:
   fixes P Q :: "('t::trace, 'a) rp_hrel" and M :: "('t, 'a) rp merge"
   assumes "P is R3c" "Q is R3c" "M is R3cm"
   shows "(P \<parallel>\<^bsub>M\<^esub> Q) is R3c"
@@ -396,16 +499,16 @@ proof -
         Healthy_if[OF assms(3)] Healthy_def')
 qed
 
-lemma RD_par_by_ORDm [closure]:
+lemma RD_par_by_merge [closure]:
   assumes "P is RD" "Q is RD" "M is ORDm"
   shows "(P \<parallel>\<^bsub>M\<^esub> Q) is RD"
 proof -
   have m: "M is RD1m" "M is R3cm" "M is R2m" "M is RD2" "M is R1m"
-    using assms(3) ORDm_R1m unfolding ORDm_healthy_iff by auto
+    using ORDm_healths[OF assms(3)] ORDm_R1m[OF assms(3)] by simp_all
   have h: "(P \<parallel>\<^bsub>M\<^esub> Q) is R1" "(P \<parallel>\<^bsub>M\<^esub> Q) is R2"
     "(P \<parallel>\<^bsub>M\<^esub> Q) is R3c" "(P \<parallel>\<^bsub>M\<^esub> Q) is RD1" "(P \<parallel>\<^bsub>M\<^esub> Q) is RD2"
     using assms(1,2) m
-    by (auto intro: R1_par_by_merge R2_par_by_merge R3cm_par_by_merge
+    by (auto intro: R1_par_by_merge R2_par_by_merge R3c_par_by_merge
         RD1_par_by_merge RD2_par_by_merge RD_healths)
   show ?thesis
     using h R2_implies_R2c[OF h(2)]
@@ -421,10 +524,29 @@ lemma ORDm_parallel_comm:
 
 subsubsection \<open> Associativity \<close>
 
-lemma ORDm_parallel_assoc:
-  assumes "M is RD2" "M is SymMerge" "AssocMerge M"
-  shows "(P \<parallel>\<^bsub>ORDm M\<^esub> Q) \<parallel>\<^bsub>ORDm M\<^esub> R = P \<parallel>\<^bsub>ORDm M\<^esub> (Q \<parallel>\<^bsub>ORDm M\<^esub> R)"
-  by (rule par_by_merge_assoc[OF ORDm_SymMerge[OF assms(2)]
-        ORDm_AssocMerge[OF assms(1,3)]])
+text \<open>
+  Parallel is associative on RD and NDRD operands when the merge is symmetric,
+  NDRDm-healthy, and associative on branches that do not diverge from a
+  started, non-waiting prior.
+\<close>
+
+lemma par_by_merge_assoc_NDRD:
+  fixes M :: "('t::trace, 'a) rp merge"
+  assumes rd: "P is RD" "Q is RD" "R is RD"
+    and nondiv: "P is NDRD" "Q is NDRD" "R is NDRD"
+    and merge: "M is SymMerge" "M is NDRDm"
+      "AssocMerge (merge_guard (\<lambda>x z. ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z) M)"
+  shows "(P \<parallel>\<^bsub>M\<^esub> Q) \<parallel>\<^bsub>M\<^esub> R = P \<parallel>\<^bsub>M\<^esub> (Q \<parallel>\<^bsub>M\<^esub> R)"
+proof (rule par_by_merge_assoc_guard[OF SymMerge_merge_guard[OF merge(1)] merge(3)])
+  show "\<lbrakk> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v p; ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v q;
+      merge_eval M x p q z \<rbrakk> \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z" for x p q z
+    using merge(2) by (simp add: NDRDm_healthy_iff)
+  have pre: "pre\<^sub>R P = true\<^sub>r" "pre\<^sub>R Q = true\<^sub>r" "pre\<^sub>R R = true\<^sub>r"
+    using rd nondiv by (simp_all add: NDRD_healthy_iff)
+  show "P (x,z) \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+    "Q (x,z) \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z"
+    "R (x,z) \<Longrightarrow> ok\<^sub>v x \<and> \<not> wait\<^sub>v x \<longrightarrow> ok\<^sub>v z" for x z
+    using rd pre by (blast dest: preR_true_iff[OF RD_healths(1), THEN iffD1])+
+qed
 
 end

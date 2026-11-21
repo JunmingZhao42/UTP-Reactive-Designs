@@ -432,7 +432,7 @@ proof (rule notI)
     by (auto simp: merge_rd_eval[OF BasicMerge_RDM] basic_eval)
   from assoc have eq: "(\<exists>u. merge_eval ?K ?x ?p ?q u \<and> merge_eval ?K ?x u ?r ?z) =
     (\<exists>u. merge_eval ?K ?x ?q ?r u \<and> merge_eval ?K ?x u ?p ?z)"
-    by (simp only: AssocMerge_cyclic_eval; blast)
+    by (simp only: AssocMerge_iff; blast)
   from left right eq show False by blast
 qed
 
