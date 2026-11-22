@@ -554,10 +554,18 @@ lemma RH_tri_design_form:
   assumes "P\<^sub>1 is RR" "P\<^sub>2 is RR" "P\<^sub>3 is RR"
   shows "\<^bold>R(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3) = (II\<^sub>C \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> P\<^sub>1) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (P\<^sub>2 \<diamondop> P\<^sub>3))))"
 proof -
-  have "\<^bold>R(RR(P\<^sub>1) \<turnstile> RR(P\<^sub>2) \<diamondop> RR(P\<^sub>3)) = (II\<^sub>C \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> RR(P\<^sub>1)) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (RR(P\<^sub>2) \<diamondop> RR(P\<^sub>3)))))"
-    apply (pred_auto) using minus_zero_eq by blast+
-  thus ?thesis
-    by (simp add: Healthy_if assms)
+  have r1:
+    "\<lbrakk> $ok\<^sup>< \<sharp> P; $ok\<^sup>< \<sharp> Q; Q is R1 \<rbrakk> \<Longrightarrow>
+     R1(P \<turnstile> Q) = ((ok\<^sup>< \<and> P) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> Q))" for P Q
+    by (simp add: Healthy_def, pred_simp, metis)
+  have hc: "(P\<^sub>2 \<diamondop> P\<^sub>3) is R2c"
+    by (simp add: closure assms RR_implies_R2c)
+  have "\<^bold>R(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3) = R3c(R1(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3))"
+    by (simp only: RH_def R2c_R3c_commute R1_R3c_commute R2c_design
+        Healthy_if[OF RR_implies_R2c[OF assms(1)]] Healthy_if[OF hc])
+  also have "... = (II\<^sub>C \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> P\<^sub>1) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (P\<^sub>2 \<diamondop> P\<^sub>3))))"
+    by (simp add: R3c_def r1 assms unrest closure)
+  finally show ?thesis .
 qed
 
 lemma RH_design_pre_post_form:
@@ -590,13 +598,7 @@ lemma RD_reactive_tri_design_lemma:
 
 lemma RD_as_reactive_tri_design:
   "RD(P) = \<^bold>R(pre\<^sub>R(P) \<turnstile> peri\<^sub>R(P) \<diamondop> post\<^sub>R(P))"
-proof -
-  have "RD(P) = \<^bold>R((\<not> P\<^sup>f\<^sub>f) \<turnstile> P\<^sup>t\<^sub>f\<lbrakk>True/wait\<^sup>>\<rbrakk> \<diamondop> P\<^sup>t\<^sub>f\<lbrakk>False/wait\<^sup>>\<rbrakk>)"
-    by (simp add: RD_RH_design_form wait'_cond_split)
-  also have "... = \<^bold>R(pre\<^sub>R(P) \<turnstile> peri\<^sub>R(P) \<diamondop> post\<^sub>R(P))"
-    by (pred_auto)
-  finally show ?thesis .
-qed
+  by (simp add: RD_as_reactive_design wait'_cond_peri_post_cmt)
 
 lemma RD_reactive_tri_design:
   assumes "P is RD"
@@ -637,10 +639,18 @@ lemma RHS_tri_design_form:
   assumes "P\<^sub>1 is RR" "P\<^sub>2 is RR" "P\<^sub>3 is RR"
   shows "\<^bold>R\<^sub>s(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3) = (II\<^sub>R \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> P\<^sub>1) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (P\<^sub>2 \<diamondop> P\<^sub>3))))"
 proof -
-  have "\<^bold>R\<^sub>s(RR(P\<^sub>1) \<turnstile> RR(P\<^sub>2) \<diamondop> RR(P\<^sub>3)) = (II\<^sub>R \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> RR(P\<^sub>1)) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (RR(P\<^sub>2) \<diamondop> RR(P\<^sub>3)))))"
-    apply (pred_auto) using minus_zero_eq by blast+
-  thus ?thesis
-    by (simp add: Healthy_if assms)
+  have r1:
+    "\<lbrakk> $ok\<^sup>< \<sharp> P; $ok\<^sup>< \<sharp> Q; Q is R1 \<rbrakk> \<Longrightarrow>
+     R1(P \<turnstile> Q) = ((ok\<^sup>< \<and> P) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> Q))" for P Q
+    by (simp add: Healthy_def, pred_simp, metis)
+  have hc: "(P\<^sub>2 \<diamondop> P\<^sub>3) is R2c"
+    by (simp add: closure assms RR_implies_R2c)
+  have "\<^bold>R\<^sub>s(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3) = R3h(R1(P\<^sub>1 \<turnstile> P\<^sub>2 \<diamondop> P\<^sub>3))"
+    by (simp only: RHS_def R2c_R3h_commute R1_R3h_commute R2c_design
+        Healthy_if[OF RR_implies_R2c[OF assms(1)]] Healthy_if[OF hc])
+  also have "... = (II\<^sub>R \<triangleleft> $wait\<^sup>< \<triangleright> ((ok\<^sup>< \<and> P\<^sub>1) \<longrightarrow>\<^sub>r (ok\<^sup>> \<and> (P\<^sub>2 \<diamondop> P\<^sub>3))))"
+    by (simp add: R3h_form r1 assms unrest closure)
+  finally show ?thesis .
 qed
 
 lemma RHS_design_pre_post_form:
@@ -673,17 +683,7 @@ lemma SRD_reactive_tri_design_lemma:
 
 lemma SRD_as_reactive_tri_design:
   "SRD(P) = \<^bold>R\<^sub>s(pre\<^sub>R(P) \<turnstile> peri\<^sub>R(P) \<diamondop> post\<^sub>R(P))"
-proof -
-  have "SRD(P) = \<^bold>R\<^sub>s((\<not> P\<^sup>f\<^sub>f) \<turnstile> P\<^sup>t\<^sub>f\<lbrakk>True/wait\<^sup>>\<rbrakk> \<diamondop> P\<^sup>t\<^sub>f\<lbrakk>False/wait\<^sup>>\<rbrakk>)"
-    by (simp add: SRD_RH_design_form wait'_cond_split)
-  also have "... = \<^bold>R\<^sub>s(pre\<^sub>R(P) \<turnstile> peri\<^sub>R(P) \<diamondop> post\<^sub>R(P))"
-    apply (simp add: usubst)
-    apply (subst design_subst_ok_ok'[THEN sym])
-    apply (simp add: pre\<^sub>R_def peri\<^sub>R_def post\<^sub>R_def usubst unrest)
-    apply (pred_auto)
-  done
-  finally show ?thesis .
-qed
+  by (simp add: SRD_as_reactive_design wait'_cond_peri_post_cmt)
 
 lemma SRD_reactive_tri_design:
   assumes "P is SRD"
@@ -789,10 +789,7 @@ theorem R1_design_composition_RR:
   assumes "P is RR" "Q is RR" "R is RR" "S is RR"
   shows
   "(R1(P \<turnstile> Q) ;; R1(R \<turnstile> S)) = R1(((\<not>\<^sub>r P) wp\<^sub>r false \<and> Q wp\<^sub>r R) \<turnstile> (Q ;; S))"
-  apply (subst R1_design_composition)
-  apply (simp_all add: assms unrest wp_rea_def Healthy_if closure)
-  apply (pred_auto)
-done
+  by (rule utp_rdes_designs.R1_design_composition_RR[OF assms])
 
 theorem R1_design_composition_RC:
   assumes "P is RC" "Q is RR" "R is RR" "S is RR"
@@ -926,6 +923,9 @@ lemma RH_tri_design_right_unit_lemma:
   assumes "$ok\<^sup>> \<sharp> P" "$ok\<^sup>> \<sharp> Q" "$ok\<^sup>> \<sharp> R" "$wait\<^sup>> \<sharp> R"
   shows "\<^bold>R(P \<turnstile> Q \<diamondop> R) ;; II\<^sub>C = \<^bold>R((\<not>\<^sub>r (\<not>\<^sub>r P) ;; true\<^sub>r) \<turnstile> (Q \<diamondop> R))"
 proof -
+  have norm: "\<^bold>R((\<not> (\<not> A) ;; R1 true) \<turnstile> B) =
+               \<^bold>R((\<not>\<^sub>r (\<not>\<^sub>r A) ;; true\<^sub>r) \<turnstile> B)" for A B
+    by (pred_auto; blast)
   have "\<^bold>R(P \<turnstile> Q \<diamondop> R) ;; II\<^sub>C = \<^bold>R(P \<turnstile> Q \<diamondop> R) ;; \<^bold>R(true \<turnstile> false \<diamondop> (($tr\<^sup>> = $tr\<^sup><)\<^sub>e \<and> \<lceil>II\<rceil>\<^sub>R))"
     by (simp add: rdes_skip_tri_design, pred_auto)
   also have "... = \<^bold>R ((\<not> R1 (\<not> R2s P) ;; R1 true) \<turnstile> Q \<diamondop> (R1 (R2s R) ;; R1 (R2s (($tr\<^sup>> = $tr\<^sup><)\<^sub>e \<and> \<lceil>II\<rceil>\<^sub>R))))"
@@ -940,7 +940,7 @@ proof -
   also have "... = \<^bold>R((\<not> (\<not> P) ;; R1 true) \<turnstile> (Q \<diamondop> R))"
     by (metis (no_types, lifting) R1_R2s_R1_true_lemma R1_R2s_R2c R2c_not RH_design_R2c_pre RH_design_neg_R1_pre RH_design_post_R1 RH_design_post_R2s)
   also have "... = \<^bold>R((\<not>\<^sub>r (\<not>\<^sub>r P) ;; true\<^sub>r) \<turnstile> Q \<diamondop> R)"
-    by (pred_auto)
+    by (rule norm)
   finally show ?thesis .
 qed
 

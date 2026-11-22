@@ -614,16 +614,16 @@ lemma nmerge_rd1_merge3:
                       $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> 
                       \<^bold>M3(M))"
 proof -
-  have "\<^bold>M3(N\<^sub>1(M)) = \<^bold>M3(($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:ok\<^sup><))\<^sub>e \<and>
-                       ($wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:wait\<^sup><))\<^sub>e \<and> 
-                       ($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e \<and> 
+  have "\<^bold>M3(N\<^sub>1(M)) = \<^bold>M3(($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:ok\<^sup><)))\<^sub>e \<and>
+                       ($(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:wait\<^sup><)))\<^sub>e \<and>
+                       ($(<:tr\<^sup><) \<le> $(tr\<^sup>>))\<^sub>e \<and>
                        (\<exists> (0:ok\<^sup><, 1:ok\<^sup><, <:ok\<^sup><, ok\<^sup>>, 0:wait\<^sup><, 1:wait\<^sup><, <:wait\<^sup><, wait\<^sup>>) \<Zspot> RDM(M)))"
     by (simp add: nmerge_rd1_def nmerge_rd0_def assms Healthy_if, simp add: atomize_upred pred_ba.inf_assoc)
-  also have "... = \<^bold>M3((ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:ok\<^sup><) \<and> wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:wait\<^sup><))\<^sub>e \<and> RDM(M))"
+  also have "... = \<^bold>M3((ok\<^sup>> = ($(0:ok\<^sup><) \<and> $(1:ok\<^sup><)) \<and> wait\<^sup>> = ($(0:wait\<^sup><) \<or> $(1:wait\<^sup><)))\<^sub>e \<and> RDM(M))"
     by (pred_simp; blast)
-  also have "... = (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> \<^bold>M3(RDM(M)))"  
+  also have "... = (($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:0:ok\<^sup><) \<and> $(1:1:ok\<^sup><)) \<and> $(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:0:wait\<^sup><) \<or> $(1:1:wait\<^sup><)))\<^sub>e \<and> \<^bold>M3(RDM(M)))"
     by (pred_simp; blast)
-  also have "... = (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> \<^bold>M3(M))"  
+  also have "... = (($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:0:ok\<^sup><) \<and> $(1:1:ok\<^sup><)) \<and> $(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:0:wait\<^sup><) \<or> $(1:1:wait\<^sup><)))\<^sub>e \<and> \<^bold>M3(M))"
     by (simp add: assms Healthy_if)
   finally show ?thesis .
 qed  
@@ -649,19 +649,19 @@ proof -
     using assms by (simp add: AssocMerge_def)
   have "rotate\<^sub>m ;; (\<^bold>M3(N\<^sub>R(M))) = 
         rotate\<^sub>m ;;
-        ((\<exists> <:st\<^sup>< \<Zspot> ($\<^bold>v\<^sup>> = $<\<^sup><)\<^sub>e) \<triangleleft> $<:wait\<^sup>< \<triangleright>
-            (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> \<^bold>M3(M)) \<triangleleft> $<:ok\<^sup>< \<triangleright>
-            (($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e))"
+        ((\<exists> <:st\<^sup>< \<Zspot> ($(\<^bold>v\<^sup>>) = $(<\<^sup><))\<^sub>e) \<triangleleft> $(<:wait\<^sup><) \<triangleright>
+            (($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:0:ok\<^sup><) \<and> $(1:1:ok\<^sup><)) \<and> $(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:0:wait\<^sup><) \<or> $(1:1:wait\<^sup><)))\<^sub>e \<and> \<^bold>M3(M)) \<triangleleft> $(<:ok\<^sup><) \<triangleright>
+            (($(<:tr\<^sup><) \<le> $(tr\<^sup>>))\<^sub>e))"
     by (simp add: AssocMerge_def nmerge_rd_merge3 nmerge_rd1_merge3 assms)
   also have "... = 
-        ((\<exists> <:st\<^sup>< \<Zspot> ($\<^bold>v\<^sup>> = $<\<^sup><)\<^sub>e) \<triangleleft> $<:wait\<^sup>< \<triangleright>
-            (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> (rotate\<^sub>m ;; \<^bold>M3(M))) \<triangleleft> $<:ok\<^sup>< \<triangleright>
-            ($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e)"
+        ((\<exists> <:st\<^sup>< \<Zspot> ($(\<^bold>v\<^sup>>) = $(<\<^sup><))\<^sub>e) \<triangleleft> $(<:wait\<^sup><) \<triangleright>
+            (($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:0:ok\<^sup><) \<and> $(1:1:ok\<^sup><)) \<and> $(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:0:wait\<^sup><) \<or> $(1:1:wait\<^sup><)))\<^sub>e \<and> (rotate\<^sub>m ;; \<^bold>M3(M))) \<triangleleft> $(<:ok\<^sup><) \<triangleright>
+            ($(<:tr\<^sup><) \<le> $(tr\<^sup>>))\<^sub>e)"
     by (pred_simp, blast)
   also have "... = 
-        ((\<exists> <:st\<^sup>< \<Zspot> ($\<^bold>v\<^sup>> = $<\<^sup><)\<^sub>e) \<triangleleft> $<:wait\<^sup>< \<triangleright>
-            (($ok\<^sup>> = ($0:ok\<^sup>< \<and> $1:0:ok\<^sup>< \<and> $1:1:ok\<^sup><) \<and> $wait\<^sup>> = ($0:wait\<^sup>< \<or> $1:0:wait\<^sup>< \<or> $1:1:wait\<^sup><))\<^sub>e \<and> \<^bold>M3(M)) \<triangleleft> $<:ok\<^sup>< \<triangleright>
-            (($<:tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e))"
+        ((\<exists> <:st\<^sup>< \<Zspot> ($(\<^bold>v\<^sup>>) = $(<\<^sup><))\<^sub>e) \<triangleleft> $(<:wait\<^sup><) \<triangleright>
+            (($(ok\<^sup>>) = ($(0:ok\<^sup><) \<and> $(1:0:ok\<^sup><) \<and> $(1:1:ok\<^sup><)) \<and> $(wait\<^sup>>) = ($(0:wait\<^sup><) \<or> $(1:0:wait\<^sup><) \<or> $(1:1:wait\<^sup><)))\<^sub>e \<and> \<^bold>M3(M)) \<triangleleft> $(<:ok\<^sup><) \<triangleright>
+            (($(<:tr\<^sup><) \<le> $(tr\<^sup>>))\<^sub>e))"
     using "1" by auto
   also have "... = \<^bold>M3(N\<^sub>R(M))"
     by (simp add: AssocMerge_def nmerge_rd_merge3 nmerge_rd1_merge3 assms)
@@ -819,6 +819,21 @@ lemma parallel_rdes_def [rdes_def]:
            P\<^sub>3 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>2 \<or> P\<^sub>2 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>3) \<diamondop>
           (P\<^sub>3 \<parallel>\<^bsub>M\<^esub> Q\<^sub>3))" (is "?lhs = ?rhs")
 proof -
+  have absorb:
+    "(C \<and> ((Q1 \<longrightarrow>\<^sub>r Q2) wr\<^sub>R(N) P1 \<and>
+      (P1 \<longrightarrow>\<^sub>r P2) wr\<^sub>R(swap\<^sub>m ;; N) Q1 \<and>
+      (P1 \<longrightarrow>\<^sub>r P2) \<parallel>\<^bsub>N\<^esub> (Q1 \<longrightarrow>\<^sub>r Q2))) =
+     (C \<and> ((Q1 \<longrightarrow>\<^sub>r Q2) wr\<^sub>R(N) P1 \<and>
+      (P1 \<longrightarrow>\<^sub>r P2) wr\<^sub>R(swap\<^sub>m ;; N) Q1 \<and>
+      P2 \<parallel>\<^bsub>N\<^esub> Q2))" for P1 P2 Q1 Q2 C N
+    by (pred_auto, meson order_refl, meson order_refl, meson order_refl, blast+)
+  have hide_state:
+    "(\<exists> st\<^sup>> \<Zspot> N) ;; R1(true) = N ;; R1(true)" for N
+    by (pred_simp; blast)
+  have export:
+    "\<^bold>R\<^sub>s(A \<turnstile> ((A \<and> B) \<or> (A \<and> C) \<or> (A \<and> D)) \<diamondop> (A \<and> E)) =
+     \<^bold>R\<^sub>s(A \<turnstile> (B \<or> C \<or> D) \<diamondop> E)" for A B C D E
+    by (rule arg_cong[where f=RHS]; pred_simp)
   have "?lhs = \<^bold>R\<^sub>s (pre\<^sub>R ?lhs \<turnstile> peri\<^sub>R ?lhs \<diamondop> post\<^sub>R ?lhs)"
     by (simp add: SRD_reactive_tri_design assms closure)
   also have "... = 
@@ -832,22 +847,30 @@ proof -
                \<diamondop> ?Z)")
     by (simp add: rdes closure unrest assms, pred_simp)
   also have "... = \<^bold>R\<^sub>s(?X \<turnstile> ((?X \<and> ?Y\<^sub>1) \<or> (?X \<and> ?Y\<^sub>2) \<or> (?X \<and> ?Y\<^sub>3)) \<diamondop> (?X \<and> ?Z))"
-    by (pred_auto)
+    by (rule export[THEN sym])
   also have "... = \<^bold>R\<^sub>s(?X \<turnstile> ((?X \<and> P\<^sub>2 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>2) \<or> (?X \<and> P\<^sub>3 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>2) \<or> (?X \<and> P\<^sub>2 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>3)) \<diamondop> (?X \<and> P\<^sub>3 \<parallel>\<^bsub>M\<^esub> Q\<^sub>3))"
   proof -
     have 1:"(?X \<and> ?Y\<^sub>1) = (?X \<and> P\<^sub>2 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>2)"
-      by (pred_auto, meson order_refl, meson order_refl, meson order_refl, blast+)
+      using absorb[where ?P1.1="P\<^sub>1" and ?P2.1="P\<^sub>2" and ?Q1.1="Q\<^sub>1" and ?Q2.1="Q\<^sub>2"
+        and ?N.1="\<exists> st\<^sup>> \<Zspot> M" and ?C.1="((Q\<^sub>1 \<longrightarrow>\<^sub>r Q\<^sub>3) wr\<^sub>R(M) P\<^sub>1 \<and> (P\<^sub>1 \<longrightarrow>\<^sub>r P\<^sub>3) wr\<^sub>R(swap\<^sub>m ;; M) Q\<^sub>1)"]
+      by (simp only: wrR_def seqr_assoc hide_state pred_ba.inf_assoc pred_ba.inf_commute pred_ba.inf.left_commute)
     have 2:"(?X \<and> ?Y\<^sub>2) = (?X \<and> P\<^sub>3 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>2)"
-      by (pred_auto, meson order_refl, meson order_refl, meson order_refl, blast+)
+      using absorb[where ?P1.1="P\<^sub>1" and ?P2.1="P\<^sub>3" and ?Q1.1="Q\<^sub>1" and ?Q2.1="Q\<^sub>2"
+        and ?N.1="\<exists> st\<^sup>> \<Zspot> M" and ?C.1="((Q\<^sub>1 \<longrightarrow>\<^sub>r Q\<^sub>3) wr\<^sub>R(M) P\<^sub>1 \<and> (P\<^sub>1 \<longrightarrow>\<^sub>r P\<^sub>2) wr\<^sub>R(swap\<^sub>m ;; M) Q\<^sub>1)"]
+      by (simp only: wrR_def seqr_assoc hide_state pred_ba.inf_assoc pred_ba.inf_commute pred_ba.inf.left_commute)
     have 3:"(?X \<and> ?Y\<^sub>3) = (?X \<and> P\<^sub>2 \<parallel>\<^bsub>\<exists> st\<^sup>> \<Zspot> M\<^esub> Q\<^sub>3)"
-      by (pred_auto, meson order_refl, meson order_refl, meson order_refl, blast+)
+      using absorb[where ?P1.1="P\<^sub>1" and ?P2.1="P\<^sub>2" and ?Q1.1="Q\<^sub>1" and ?Q2.1="Q\<^sub>3"
+        and ?N.1="\<exists> st\<^sup>> \<Zspot> M" and ?C.1="((Q\<^sub>1 \<longrightarrow>\<^sub>r Q\<^sub>2) wr\<^sub>R(M) P\<^sub>1 \<and> (P\<^sub>1 \<longrightarrow>\<^sub>r P\<^sub>3) wr\<^sub>R(swap\<^sub>m ;; M) Q\<^sub>1)"]
+      by (simp only: wrR_def seqr_assoc hide_state pred_ba.inf_assoc pred_ba.inf_commute pred_ba.inf.left_commute)
     have 4:"(?X \<and> ?Z) = (?X \<and> P\<^sub>3 \<parallel>\<^bsub>M\<^esub> Q\<^sub>3)"
-      by (pred_auto, meson order_refl, meson order_refl, meson order_refl, blast+)
+      using absorb[where ?P1.1="P\<^sub>1" and ?P2.1="P\<^sub>3" and ?Q1.1="Q\<^sub>1" and ?Q2.1="Q\<^sub>3"
+        and ?N.1="M" and ?C.1="((Q\<^sub>1 \<longrightarrow>\<^sub>r Q\<^sub>2) wr\<^sub>R(M) P\<^sub>1 \<and> (P\<^sub>1 \<longrightarrow>\<^sub>r P\<^sub>2) wr\<^sub>R(swap\<^sub>m ;; M) Q\<^sub>1)"]
+      by (simp only: wrR_def seqr_assoc hide_state pred_ba.inf_assoc pred_ba.inf_commute pred_ba.inf.left_commute)
     show ?thesis
       by (simp add: 1 2 3 4)
   qed
   also have "... = ?rhs"
-    by (pred_auto)
+    by (rule export)
   finally show ?thesis .
 qed
 
@@ -966,9 +989,10 @@ lemma RHS_tri_design_par_RR [rdes_def]:
 
 lemma RHS_comp_assoc: 
   "(P \<parallel>\<^sub>R Q) \<parallel>\<^sub>R R = P \<parallel>\<^sub>R Q \<parallel>\<^sub>R R"
-  by pred_simp
+  by (simp add: rea_design_par_def rea_pre_RHS_design rea_cmt_RHS_design usubst unrest R1_conj R2c_and; pred_simp)
 
 lemma rea_design_par_mono: "P \<sqsubseteq> Q \<Longrightarrow> P \<parallel>\<^sub>R R \<sqsubseteq> Q \<parallel>\<^sub>R R"
-  by (pred_simp, blast)
+  unfolding rea_design_par_def
+  by (rule RHS_mono, pred_simp, blast)
 
 end

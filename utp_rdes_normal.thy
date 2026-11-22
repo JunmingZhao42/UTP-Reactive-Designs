@@ -140,7 +140,13 @@ lemma RHS_tri_design_RD3_intro_form:
   done
 
 lemma RD1_RD3_commute: "RD1(RD3(P)) = RD3(RD1(P))"
-  by (pred_auto, blast+)
+proof -
+  let ?D = "(\<not> $ok\<^sup>< \<and> $tr\<^sup>< \<le> $tr\<^sup>>)\<^sub>e"
+  have div: "?D ;; II\<^sub>R = ?D"
+    by (pred_auto; blast)
+  show ?thesis
+    by (simp only: RD1_def RD3_def seqr_or_distl div)
+qed
 
 lemma RD1_RD3c_commute: "RD1(RD3c(P)) = RD3c(RD1(P))"
   by (pred_auto)
@@ -761,17 +767,24 @@ next
       by (simp add: R1_Continuous assms closure)
     hence 1:"((\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P) is R1"
       by (simp add: closure assms)
-    hence "(pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P) is R1"
-      by (simp add: closure)
-    hence "(post\<^sub>R P wp\<^sub>r pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r post\<^sub>R P ;; (pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P))
-          = (post\<^sub>R P wp\<^sub>r pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r R1(post\<^sub>R P) ;; R1(pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P))"
-      by (simp add: Healthy_if R1_post_SRD assms closure)
-    thus ?thesis
-      by (simp only: wp_rea_impl_lemma, simp add: Healthy_if 1, simp add: R1_post_SRD assms closure)
+    have post: "R1(post\<^sub>R P) = post\<^sub>R P"
+      by (simp add: R1_post_SRD assms closure)
+    have body: "R1((\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P) =
+                (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P"
+      by (simp only: Healthy_if[OF 1])
+    have impl: "R1(pre\<^sub>R (P ;; P\<^bold>^ n) \<longrightarrow>\<^sub>r
+                    (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P) =
+                   (pre\<^sub>R (P ;; P\<^bold>^ n) \<longrightarrow>\<^sub>r
+                    (\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P)"
+      by (simp only: R1_rea_impl body)
+    show ?thesis
+      using wp_rea_impl_lemma[of "post\<^sub>R P" "pre\<^sub>R (P ;; P\<^bold>^ n)"
+        "(\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P"]
+      by (simp only: post body impl)
   qed
   also
   have "... = (pre\<^sub>R P \<and> post\<^sub>R P wp\<^sub>r pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r peri\<^sub>R P \<or> post\<^sub>R P ;; ((\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ i) ;; peri\<^sub>R P))"
-    by (pred_auto, meson+)
+    by (simp only: rea_impl_conj rea_impl_disj)
   also
   have "... = (pre\<^sub>R P \<and> post\<^sub>R P wp\<^sub>r pre\<^sub>R (P ;; P \<^bold>^ n) \<longrightarrow>\<^sub>r peri\<^sub>R P \<or> ((\<Sqinter>i\<in>{0..n}. post\<^sub>R P \<^bold>^ (Suc i)) ;; peri\<^sub>R P))"
     by (simp add:  seqr_assoc[THEN sym] image_image seq_Sup_distl)
