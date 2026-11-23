@@ -6,9 +6,6 @@ theory utp_rdes_parallel
     utp_rdes_tactics
 begin
 
-lemma par_by_merge_mono: "\<lbrakk> P\<^sub>1 \<sqsubseteq> P\<^sub>2; Q\<^sub>1 \<sqsubseteq> Q\<^sub>2; M\<^sub>1 \<sqsubseteq> M\<^sub>2 \<rbrakk> \<Longrightarrow> P\<^sub>1 \<parallel>\<^bsub>M\<^sub>1\<^esub> Q\<^sub>1 \<sqsubseteq> P\<^sub>2 \<parallel>\<^bsub>M\<^sub>2\<^esub> Q\<^sub>2"
-  by (pred_auto, metis)
-
 text \<open> R3h implicitly depends on RD1, and therefore it requires that both sides be RD1. We also
   require that both sides are R3c, and that @{term "wait\<^sub>m"} is a quasi-unit, and @{term "div\<^sub>m"} yields
   divergence. \<close>
