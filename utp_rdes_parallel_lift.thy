@@ -274,4 +274,163 @@ lemma rdes_lift_parallel_assoc_nd:
   by (rule par_by_merge_assoc_NDRD[OF rd nondiv merge_rdes_SymMerge[OF merge(1)]
         merge_rdes_NDRDm merge_rdes_guard_AssocMerge[OF merge(2)]])
 
+subsubsection \<open> Associativity for Normal Operands \<close>
+
+(* A divergent intermediate result may end with any extension u of its merged
+   trace. For the other bracketing to produce u, we need a divergent input to
+   reach it, so we ask j to absorb extensions: with p \<otimes> q the merged results
+   and \<up> adding trace extensions with any state,
+     \<up>(p \<otimes> q) \<subseteq> \<up>p \<otimes> q *)
+lemma rdes_lift_parallel_assoc_nrd:
+  fixes P Q R :: "('t::trace, 'a) rp_hrel" and j :: "('t \<times> 'a) merge"
+  assumes nrd: "P is NRD" "Q is NRD" "R is NRD"
+      and sym: "j is SymMerge" and assoc: "AssocMerge j"
+      and absorb: "\<And>x p q. {u. \<exists>z. merge_eval j x p q z \<and> fst z \<le> fst u} \<subseteq>
+        {u. \<exists>p'. fst p \<le> fst p' \<and> merge_eval j x p' q u}"
+  shows "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R = P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)"
+proof -
+  have swap: "merge_eval j x p q z \<longleftrightarrow> merge_eval j x q p z" for x p q z
+    using sym unfolding SymMerge_eval by blast
+  have rotate: "\<exists>v. merge_eval j x q r v \<and> merge_eval j x p v z"
+    if "merge_eval j x p q u" "merge_eval j x u r z" for x p q r u z
+    using that assoc[unfolded AssocMerge_iff] swap by blast
+  have absorb': "\<exists>p'. fst p \<le> fst p' \<and> merge_eval j x p' q u"
+    if "merge_eval j x p q z" "fst z \<le> fst u" for x p q z u
+    using absorb[of x p q] that by blast
+  (* A divergent observation of a normal process extends to absorb u. *)
+  have extend: "\<exists>p'. X (x, p') \<and> \<not> ok\<^sub>v p' \<and> merge_eval j (0, rea_vars.more x)
+      (tr\<^sub>v p' - tr\<^sub>v x, rea_vars.more p') b (tr\<^sub>v u - tr\<^sub>v x, rea_vars.more u)"
+    if nrdX: "X is NRD" and px: "X (x, p)" and dp: "\<not> ok\<^sub>v p"
+      and pw: "merge_eval j (0, rea_vars.more x) (tr\<^sub>v p - tr\<^sub>v x, rea_vars.more p) b w"
+      and wu: "fst w \<le> tr\<^sub>v u - tr\<^sub>v x"
+    for X :: "('t, 'a) rp_hrel" and x p b w u
+  proof -
+    obtain p0 where p0: "tr\<^sub>v p - tr\<^sub>v x \<le> fst p0"
+      "merge_eval j (0, rea_vars.more x) p0 b (tr\<^sub>v u - tr\<^sub>v x, rea_vars.more u)"
+      using absorb'[OF pw, of "(tr\<^sub>v u - tr\<^sub>v x, rea_vars.more u)"] wu by auto
+    let ?p' = "\<lparr>ok\<^sub>v = False, wait\<^sub>v = False, tr\<^sub>v = tr\<^sub>v x + fst p0, \<dots> = snd p0\<rparr>
+      :: ('t, 'a) rp"
+    have "tr\<^sub>v x \<le> tr\<^sub>v p"
+      using px fun_cong[OF Healthy_if[OF RD_healths(1)[OF NRD_is_RD[OF nrdX]]], of "(x, p)"]
+      by (simp add: R1_def; pred_auto)
+    then have le: "tr\<^sub>v p \<le> tr\<^sub>v ?p'"
+      using add_left_mono[OF p0(1), of "tr\<^sub>v x"] by (simp add: diff_add_cancel_left')
+    have rd3c: "X is RD3c"
+      using nrdX by (metis Healthy_def NRD_def RD1_RD3c_commute RD3c_idem comp_apply)
+    have "X (x, ?p')"
+      using px dp le fun_cong[OF Healthy_if[OF rd3c], of "(x, ?p')"]
+      by (cases p; simp add: RD3c_def skip_rea_def; pred_simp; metis)
+    show ?thesis
+      by (rule exI[of _ ?p']) (use \<open>X (x, ?p')\<close> p0(2) in simp)
+  qed
+  have incl: "(P' \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q' \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R')) (x, z)"
+    if ops: "P' is NRD" "Q' is NRD" "R' is NRD"
+      and lhs: "((P' \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q') \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R') (x, z)"
+    for P' Q' R' :: "('t, 'a) rp_hrel" and x z
+  proof -
+    obtain p q r u where p: "P' (x, p)" and q: "Q' (x, q)" and r: "R' (x, r)"
+      and mpq: "merge_eval (merge_rdes j) x p q u" and mur: "merge_eval (merge_rdes j) x u r z"
+      using lhs unfolding par_by_merge_eval by blast
+    show ?thesis
+    proof (cases "ok\<^sub>v x \<and> \<not> wait\<^sub>v x")
+      case False
+      then show ?thesis
+        using p q r mur unfolding par_by_merge_eval by (auto simp: merge_rdes_eval)
+    next
+      case started: True
+      let ?x0 = "(0, rea_vars.more x)"
+      let ?r = "\<lambda>y :: ('t, 'a) rp. (tr\<^sub>v y - tr\<^sub>v x, rea_vars.more y)"
+      have M: "merge_eval (merge_rdes j) x p q z \<longleftrightarrow> tr\<^sub>v x \<le> tr\<^sub>v z \<and>
+          ((ok\<^sub>v p \<and> ok\<^sub>v q \<and> ok\<^sub>v z \<and> wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q) \<and>
+              merge_eval j ?x0 (?r p) (?r q) (?r z)) \<or>
+            (\<not> (ok\<^sub>v p \<and> ok\<^sub>v q) \<and>
+              (\<exists>y. merge_eval j ?x0 (?r p) (?r q) y \<and> fst y \<le> tr\<^sub>v z - tr\<^sub>v x)))" for p q z
+        using started by (simp add: merge_rdes_eval; blast)
+      have wit: "\<exists>y. merge_eval j ?x0 (?r p) (?r q) y \<and> fst y \<le> tr\<^sub>v z - tr\<^sub>v x"
+        if "merge_eval (merge_rdes j) x p q z" for p q z
+        using that by (auto simp: M)
+      have z: "tr\<^sub>v x \<le> tr\<^sub>v z"
+        using mur by (simp add: M)
+      show ?thesis
+      proof (cases "ok\<^sub>v p \<and> ok\<^sub>v q \<and> ok\<^sub>v r")
+        case True
+        then have "merge_eval j ?x0 (?r p) (?r q) (?r u)" "merge_eval j ?x0 (?r u) (?r r) (?r z)"
+          "ok\<^sub>v u" "ok\<^sub>v z" "wait\<^sub>v z = (wait\<^sub>v p \<or> wait\<^sub>v q \<or> wait\<^sub>v r)"
+          using mpq mur by (auto simp: M)
+        then obtain v0 where v0: "merge_eval j ?x0 (?r q) (?r r) v0" "merge_eval j ?x0 (?r p) v0 (?r z)"
+          using rotate by blast
+        let ?v = "\<lparr>ok\<^sub>v = True, wait\<^sub>v = (wait\<^sub>v q \<or> wait\<^sub>v r), tr\<^sub>v = tr\<^sub>v x + fst v0,
+          \<dots> = snd v0\<rparr> :: ('t, 'a) rp"
+        have "merge_eval (merge_rdes j) x q r ?v" "merge_eval (merge_rdes j) x p ?v z"
+          using True v0 z \<open>ok\<^sub>v z\<close> \<open>wait\<^sub>v z = _\<close> by (simp_all add: M)
+        then show ?thesis
+          using p q r unfolding par_by_merge_eval by blast
+      next
+        case False
+        (* Some branch diverges: we move u into a divergent input. *)
+        obtain p1 q1 where p1: "P' (x, p1)" and q1: "Q' (x, q1)"
+          and div: "\<not> (ok\<^sub>v p1 \<and> ok\<^sub>v q1 \<and> ok\<^sub>v r)"
+          and u: "merge_eval j ?x0 (?r p1) (?r q1) (?r u)"
+        proof (cases "ok\<^sub>v p \<and> ok\<^sub>v q")
+          case True
+          then show ?thesis
+            using that[of p q] p q False mpq by (auto simp: M)
+        next
+          case False
+          obtain w where w: "merge_eval j ?x0 (?r p) (?r q) w" "fst w \<le> tr\<^sub>v u - tr\<^sub>v x"
+            using wit[OF mpq] by blast
+          show ?thesis
+          proof (cases "ok\<^sub>v p")
+            case False
+            then obtain p1 where "P' (x, p1)" "\<not> ok\<^sub>v p1" "merge_eval j ?x0 (?r p1) (?r q) (?r u)"
+              using extend[OF ops(1) p _ w] by blast
+            then show ?thesis
+              using that[of p1 q] q by blast
+          next
+            case True
+            then have "\<not> ok\<^sub>v q"
+              using \<open>\<not> (ok\<^sub>v p \<and> ok\<^sub>v q)\<close> by blast
+            moreover have "merge_eval j ?x0 (?r q) (?r p) w"
+              using w(1) swap by blast
+            ultimately obtain q1 where "Q' (x, q1)" "\<not> ok\<^sub>v q1" "merge_eval j ?x0 (?r p) (?r q1) (?r u)"
+              using extend[OF ops(2) q _ _ w(2)] swap by blast
+            then show ?thesis
+              using that[of p q1] p by blast
+          qed
+        qed
+        obtain w where w: "merge_eval j ?x0 (?r u) (?r r) w" "fst w \<le> tr\<^sub>v z - tr\<^sub>v x"
+          using wit[OF mur] by blast
+        obtain v0 where v0: "merge_eval j ?x0 (?r q1) (?r r) v0" "merge_eval j ?x0 (?r p1) v0 w"
+          using rotate[OF u w(1)] by blast
+        let ?v = "\<lparr>ok\<^sub>v = (ok\<^sub>v q1 \<and> ok\<^sub>v r), wait\<^sub>v = (wait\<^sub>v q1 \<or> wait\<^sub>v r),
+          tr\<^sub>v = tr\<^sub>v x + fst v0, \<dots> = snd v0\<rparr> :: ('t, 'a) rp"
+        have "merge_eval (merge_rdes j) x q1 r ?v"
+          using v0(1) by (cases v0; cases "ok\<^sub>v q1 \<and> ok\<^sub>v r"; simp add: M; blast)
+        moreover have "merge_eval (merge_rdes j) x p1 ?v z"
+          using div z v0(2) w by (cases v0; cases w; simp add: M; blast)
+        ultimately show ?thesis
+          using p1 q1 r unfolding par_by_merge_eval by blast
+      qed
+    qed
+  qed
+  have comm: "X \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Y = Y \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> X" for X Y :: "('t, 'a) rp_hrel"
+    by (rule rdes_lift_parallel_comm[OF sym])
+  show ?thesis
+  proof (rule ext, clarify, rule iffI)
+    fix x z
+    assume "((P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R) (x, z)"
+    then show "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)) (x, z)"
+      by (rule incl[OF nrd])
+  next
+    fix x z
+    assume "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R)) (x, z)"
+    then have "((R \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P) (x, z)"
+      by (simp only: comm[of P] comm[of Q])
+    then have "(R \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> (Q \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P)) (x, z)"
+      by (rule incl[OF nrd(3) nrd(2) nrd(1)])
+    then show "((P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Q) \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> R) (x, z)"
+      by (simp only: comm[of R] comm[of Q])
+  qed
+qed
+
 end
