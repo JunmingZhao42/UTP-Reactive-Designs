@@ -651,6 +651,83 @@ abbreviation Chaos :: "('s,'t::trace,'\<alpha>) rsp_hrel" where
 abbreviation Miracle :: "('s,'t::trace,'\<alpha>) rsp_hrel" where
 "Miracle \<equiv> srdes_theory.utp_top"
 
+(* RD Chaos and Miracle: the bottom and top of RD. The upstream Chaos and
+   Miracle are their SRD versions. *)
+abbreviation bottom_RD :: "('t::trace, 'a) rp_hrel" ("\<^bold>\<bottom>\<^sub>R\<^sub>D") where
+"\<^bold>\<bottom>\<^sub>R\<^sub>D \<equiv> RD true"
+
+abbreviation top_RD :: "('t::trace, 'a) rp_hrel" ("\<^bold>\<top>\<^sub>R\<^sub>D") where
+"\<^bold>\<top>\<^sub>R\<^sub>D \<equiv> RD false"
+
+lemma bottom_RD_is_RD [closure]: "\<^bold>\<bottom>\<^sub>R\<^sub>D is RD"
+  by (simp add: Healthy_def' RD_idem)
+
+lemma top_RD_is_RD [closure]: "\<^bold>\<top>\<^sub>R\<^sub>D is RD"
+  by (simp add: Healthy_def' RD_idem)
+
+lemma bottom_RD_lower:
+  assumes "P is RD"
+  shows "\<^bold>\<bottom>\<^sub>R\<^sub>D \<sqsubseteq> P"
+proof -
+  have "RD true \<sqsubseteq> RD P"
+    by (rule Monotonic_refine[THEN iffD1, OF RD_Monotonic, rule_format]) pred_auto
+  then show ?thesis
+    by (simp only: Healthy_if[OF assms])
+qed
+
+lemma top_RD_upper:
+  assumes "P is RD"
+  shows "P \<sqsubseteq> \<^bold>\<top>\<^sub>R\<^sub>D"
+proof -
+  have "RD P \<sqsubseteq> RD false"
+    by (rule Monotonic_refine[THEN iffD1, OF RD_Monotonic, rule_format]) pred_auto
+  then show ?thesis
+    by (simp only: Healthy_if[OF assms])
+qed
+
+(* Chaos lets any started or unstarted observation extend the trace, and keeps a
+   waiting one:
+     \<bottom>RD = (\<not>(ok \<and> wait) \<and> tr \<le> tr') \<or> (ok \<and> wait \<and> II) *)
+lemma bottom_RD_eval:
+  "(\<^bold>\<bottom>\<^sub>R\<^sub>D :: ('t::trace, 'a) rp_hrel) (x, z) \<longleftrightarrow>
+    (\<not> (ok\<^sub>v x \<and> wait\<^sub>v x) \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or> (ok\<^sub>v x \<and> wait\<^sub>v x \<and> z = x)"
+  by (cases x; cases z; pred_auto) (metis minus_zero_eq, metis diff_cancel order_refl)
+
+(* Miracle has no started observation:
+     \<top>RD = (\<not>ok \<and> tr \<le> tr') \<or> (ok \<and> wait \<and> II) *)
+lemma top_RD_eval:
+  "(\<^bold>\<top>\<^sub>R\<^sub>D :: ('t::trace, 'a) rp_hrel) (x, z) \<longleftrightarrow>
+    (\<not> ok\<^sub>v x \<and> tr\<^sub>v x \<le> tr\<^sub>v z) \<or> (ok\<^sub>v x \<and> wait\<^sub>v x \<and> z = x)"
+  by (cases x; cases z; pred_auto) (metis minus_zero_eq, metis diff_cancel order_refl)
+
+(* RD fixes the unstarted and waiting priors, so we compare reactive designs at
+   the active priors only:
+     (\<forall>x z. ok \<and> \<not>wait \<longrightarrow> P(x,z) = Q(x,z)) \<Longrightarrow> P = Q *)
+lemma RD_eq_active:
+  fixes P Q :: "('t::trace, 'a) rp_hrel"
+  assumes "P is RD" "Q is RD"
+      and "\<And>x z. ok\<^sub>v x \<Longrightarrow> \<not> wait\<^sub>v x \<Longrightarrow> P (x, z) \<longleftrightarrow> Q (x, z)"
+  shows "P = Q"
+proof (rule ext, clarify)
+  fix x z
+  have bounds: "\<^bold>\<top>\<^sub>R\<^sub>D (x, z) \<Longrightarrow> X (x, z)" "X (x, z) \<Longrightarrow> \<^bold>\<bottom>\<^sub>R\<^sub>D (x, z)"
+    if "X is RD" for X :: "('t, 'a) rp_hrel"
+    using top_RD_upper[OF that] bottom_RD_lower[OF that] unfolding pred_refine_iff by blast+
+  show "P (x, z) \<longleftrightarrow> Q (x, z)"
+  proof (cases "ok\<^sub>v x \<and> \<not> wait\<^sub>v x")
+    case True
+    then show ?thesis
+      using assms(3) by blast
+  next
+    (* elsewhere P and Q lie between \<bottom>RD and \<top>RD, which agree there *)
+    case False
+    then have "\<^bold>\<bottom>\<^sub>R\<^sub>D (x, z) \<longleftrightarrow> \<^bold>\<top>\<^sub>R\<^sub>D (x, z)"
+      by (cases "ok\<^sub>v x") (simp_all add: bottom_RD_eval top_RD_eval)
+    then show ?thesis
+      using bounds[OF assms(1)] bounds[OF assms(2)] by blast
+  qed
+qed
+
 thm srdes_theory.weak.bottom_lower
 thm srdes_theory.weak.top_higher
 thm srdes_theory.meet_bottom

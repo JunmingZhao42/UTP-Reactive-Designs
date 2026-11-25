@@ -210,6 +210,56 @@ proof -
   by (rule par_by_merge_comm[OF merge_rdes_SymMerge[OF assms]])
 qed
 
+subsubsection \<open> Zero Laws \<close>
+
+(* We let Miracle absorb any reactive design: Miracle has no active
+   observation, and RD fixes the inactive ones:
+     P \<parallel>RD[j] \<top>RD = \<top>RD *)
+lemma rdes_lift_parallel_miracle:
+  fixes P :: "('t::trace, 'a) rp_hrel"
+  assumes "P is RD"
+  shows "P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> \<^bold>\<top>\<^sub>R\<^sub>D = \<^bold>\<top>\<^sub>R\<^sub>D" "\<^bold>\<top>\<^sub>R\<^sub>D \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P = \<^bold>\<top>\<^sub>R\<^sub>D"
+  by (rule RD_eq_active, simp_all add: assms closure par_by_merge_eval top_RD_eval)+
+
+(* Chaos diverges at once, but the output must still extend the merged trace.
+   So we need P to have an observation at the prior trace, and j to merge empty
+   traces into an empty trace:
+     (P \<and> tr' = tr) is H4 \<Longrightarrow> P \<parallel>RD[j] \<bottom>RD = \<bottom>RD *)
+lemma rdes_lift_parallel_chaos:
+  fixes P :: "('t::trace, 'a) rp_hrel" and j :: "('t \<times> 'a) merge"
+  assumes rd: "P is RD"
+      and stop: "(P \<and> ($tr\<^sup>> = $tr\<^sup><)\<^sub>e) is H4"
+      and empty: "\<And>s sL sR. \<exists>s'. merge_eval j (0, s) (0, sL) (0, sR) (0, s')"
+  shows "P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> \<^bold>\<bottom>\<^sub>R\<^sub>D = \<^bold>\<bottom>\<^sub>R\<^sub>D" "\<^bold>\<bottom>\<^sub>R\<^sub>D \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P = \<^bold>\<bottom>\<^sub>R\<^sub>D"
+proof -
+  have upper: "\<^bold>\<bottom>\<^sub>R\<^sub>D (x, z)" if "(X \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> Y) (x, z)" for X Y :: "('t, 'a) rp_hrel" and x z
+    using that by (auto simp: par_by_merge_eval merge_rdes_eval bottom_RD_eval)
+  (* at an active prior, P stops at the prior trace and Chaos diverges there *)
+  have lower: "(P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> \<^bold>\<bottom>\<^sub>R\<^sub>D) (x, z) \<and> (\<^bold>\<bottom>\<^sub>R\<^sub>D \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P) (x, z)"
+    if "ok\<^sub>v x" "\<not> wait\<^sub>v x" "\<^bold>\<bottom>\<^sub>R\<^sub>D (x, z)" for x z
+  proof -
+    obtain p where p: "P (x, p)" "tr\<^sub>v p = tr\<^sub>v x"
+      using fun_cong[OF is_H4_alt_def[THEN iffD1, OF stop], of "(x, x)"]
+      by (simp add: seq_def true_pred_def; pred_simp; blast)
+    obtain e e' where
+      e: "merge_eval j (0, rea_vars.more x) (0, rea_vars.more p) (0, rea_vars.more x) (0, e)" and
+      e': "merge_eval j (0, rea_vars.more x) (0, rea_vars.more x) (0, rea_vars.more p) (0, e')"
+      using empty by blast
+    let ?q = "des_vars.ok\<^sub>v_update (\<lambda>_. False) x"
+    have "(\<^bold>\<bottom>\<^sub>R\<^sub>D :: ('t, 'a) rp_hrel) (x, ?q)"
+      using that by (simp add: bottom_RD_eval)
+    moreover have "merge_eval (merge_rdes j) x p ?q z"
+      using that p e by (simp add: merge_rdes_eval bottom_RD_eval; blast intro: least_zero)
+    moreover have "merge_eval (merge_rdes j) x ?q p z"
+      using that p e' by (simp add: merge_rdes_eval bottom_RD_eval; blast intro: least_zero)
+    ultimately show ?thesis
+      using p(1) unfolding par_by_merge_eval by blast
+  qed
+  show "P \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> \<^bold>\<bottom>\<^sub>R\<^sub>D = \<^bold>\<bottom>\<^sub>R\<^sub>D" "\<^bold>\<bottom>\<^sub>R\<^sub>D \<parallel>\<^sub>R\<^sub>D\<^bsub>j\<^esub> P = \<^bold>\<bottom>\<^sub>R\<^sub>D"
+    by (rule RD_eq_active, simp add: closure rd, rule bottom_RD_is_RD,
+        rule iffI, erule upper, use lower in blast)+
+qed
+
 subsubsection \<open> Associativity for Nondivergent Operands \<close>
 
 lemma ORDm_merge_rdes_raw_AssocMerge:

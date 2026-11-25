@@ -146,6 +146,14 @@ lemma RH_design_is_RD:
   shows "\<^bold>R(P \<turnstile> Q) is RD"
   by (simp add: RD_RH_design Healthy_def' assms(1) assms(2))
 
+(* \<bottom>RD = R(false \<turnstile> true) *)
+lemma bottom_RD_design: "(\<^bold>\<bottom>\<^sub>R\<^sub>D :: ('t::trace, 'a) rp_hrel) = \<^bold>R(false \<turnstile> true)"
+  by (simp add: RD_RH_design_form usubst)
+
+(* \<top>RD = R(true \<turnstile> false) *)
+lemma top_RD_design: "(\<^bold>\<top>\<^sub>R\<^sub>D :: ('t::trace, 'a) rp_hrel) = \<^bold>R(true \<turnstile> false)"
+  by (simp add: RD_RH_design_form usubst)
+
 lemma SRD_RH_design_form:
   "SRD(P) = \<^bold>R\<^sub>s((\<not> P\<^sup>f\<^sub>f) \<turnstile> P\<^sup>t\<^sub>f)"
 proof -
