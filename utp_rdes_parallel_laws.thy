@@ -515,13 +515,6 @@ proof -
     by (simp add: Healthy_def' RD_alt_def RH_def)
 qed
 
-subsubsection \<open> Commutativity \<close>
-
-lemma ORDm_parallel_comm:
-  assumes "M is SymMerge"
-  shows "P \<parallel>\<^bsub>ORDm M\<^esub> Q = Q \<parallel>\<^bsub>ORDm M\<^esub> P"
-  by (rule par_by_merge_comm[OF ORDm_SymMerge[OF assms]])
-
 subsubsection \<open> Associativity \<close>
 
 text \<open>
